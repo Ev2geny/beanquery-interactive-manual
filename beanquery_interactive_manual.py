@@ -524,7 +524,7 @@ def _(query_editor):
     _sql = """\
     SELECT *
     WHERE account = "Expenses:Food"
- 
+
     """
     sql_ui_traditional = query_editor(_sql, label="Traditional query  (always on postings). Here we select postings to the account Expenses:Food")
     sql_ui_traditional
