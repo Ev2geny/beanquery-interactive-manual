@@ -22,7 +22,9 @@ def _(heading):
 
 @app.cell
 def _(mo):
-    mo.md("")
+    mo.md("""
+ 
+    """)
     return
 
 
@@ -122,7 +124,6 @@ def _():
         return ui
 
 
-    HEADING_COLOR = "#1e40af"
     _heading_counters = [0, 0, 0, 0]  # h2, h3, h4, h5
 
     def heading(level: int, text: str, number: bool = True) -> mo.Html:
@@ -138,10 +139,7 @@ def _():
             for i in range(idx + 1, len(_heading_counters)):
                 _heading_counters[i] = 0
             prefix = ".".join(str(_heading_counters[i]) for i in range(idx + 1)) + ". "
-        return mo.md(
-            f"<h{level} style='color: {HEADING_COLOR};'>"
-            f"{prefix}{text}</h{level}>"
-        )
+        return mo.md(f"<h{level}>{prefix}{text}</h{level}>")
 
 
     return heading, ledger_editor, mo, query_editor, query_output
@@ -166,7 +164,16 @@ def _(heading, intro_hd):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    The purpose of this document is to be an interactive and updated to the beanquery v3 replacement of the [Beancount Query Language](https://docs.google.com/document/d/1s0GOZMcrKKCLlP29MD7kHO4L88evrwWdIO0p4EwRBE0/edit?usp=sharing) document
+    This is an interactive manual/tutorial for the [beanquery](https://github.com/beancount/beanquery) - a customizable and extensible lightweight SQL query tool for the [Beancount](https://github.com/beancount/beancount/) ledger data.
+
+    It is created with the following goals in mind:
+
+    * to cover latest features of the beanquery
+    * to include lot of actual examples on actual ledgers
+    * to be self-documenting for the query outputs (query outputs are computed with actual beanquery as a part of the notebook execution)
+    * to be interactive. If it is run as a marimo notebook, then a reader can experiment by changing default ledgers and/or queries to get an updated query outputs.
+
+    Therefore the goal is for this document to be a follow up of the beancount v2 [Beancount Query Language](https://docs.google.com/document/d/1s0GOZMcrKKCLlP29MD7kHO4L88evrwWdIO0p4EwRBE0/edit?usp=sharing) document
     """)
     return
 
@@ -545,14 +552,6 @@ def _(mo):
 
 
 @app.cell
-def _(mo):
-    mo.md(r"""
- 
-    """)
-    return
-
-
-@app.cell
 def _(ledger_editor):
     _ledger = """\
     2023-01-01 open Income:Salary
@@ -574,21 +573,23 @@ def _(ledger_editor):
 
 
 @app.cell
+def _(mo):
+    mo.md(r"""
+    Let us create a query which shows postings to the account `Expenses:Food`
+    """)
+    return
+
+
+@app.cell
 def _(query_editor):
     _sql = """\
     SELECT *
     WHERE account = "Expenses:Food"
 
     """
-    sql_ui_traditional = query_editor(_sql, label="Traditional query  (always on postings). Here we select postings to the account Expenses:Food")
-    sql_ui_traditional
+    sql_ui_traditional = query_editor(_sql, label="Traditional query")
+    # sql_ui_traditional
     return (sql_ui_traditional,)
-
-
-@app.cell
-def _(query_output, simple_ledger_ui, sql_ui_traditional):
-    query_output(simple_ledger_ui.value, sql_ui_traditional.value) 
-    return
 
 
 @app.cell
@@ -598,14 +599,38 @@ def _(query_editor):
     FROM #postings
     WHERE account = "Expenses:Food"
     """
-    sql_ui_hash_table = query_editor(_sql, label="The same query on postings, but using the \#table syntax")
-    sql_ui_hash_table
+    sql_ui_hash_table = query_editor(_sql, label="The same query, but using the \#table syntax")
+    # sql_ui_hash_table
     return (sql_ui_hash_table,)
 
 
 @app.cell
-def _(query_output, simple_ledger_ui, sql_ui_hash_table):
-    query_output(simple_ledger_ui.value, sql_ui_hash_table.value) 
+def _(
+    mo,
+    query_output,
+    simple_ledger_ui,
+    sql_ui_hash_table,
+    sql_ui_traditional,
+):
+    mo.hstack([
+        mo.vstack([
+            sql_ui_traditional,
+            query_output(simple_ledger_ui.value, sql_ui_traditional.value)
+        ]),
+        mo.vstack([
+            sql_ui_hash_table,
+            query_output(simple_ledger_ui.value, sql_ui_hash_table.value)   
+        ])
+
+    ])
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    Let us query the **accounts** table
+    """)
     return
 
 
