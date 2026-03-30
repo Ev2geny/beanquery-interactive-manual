@@ -211,7 +211,7 @@ def _(heading, how_to_use__man_h):
 @app.cell
 def _(mo):
     mo.md(r"""
-    Beancount’s parsed list of entries is like an in-memory database represented in a form of several tables. Beanquery is a command-line tool that acts like a client to that in-memory database in which you can type queries in a variant of SQL. You invoke it like this:
+    Beanquery parses a Beancount ledger and creates an in-memory database represented in a form of several tables. Beanquery then exposes a command-line tool that acts like a client to that in-memory database in which you can type queries in a variant of SQL. You invoke it like this:
 
     ```shell
     bean-query  test.bean
@@ -409,7 +409,7 @@ def _(heading, how_to_get_help_h):
 @app.cell
 def _(mo):
     mo.md(r"""
-    The beanquery SELECT query loosely follows standard SQL syntax and can be applied to the set tables list of which can be derived by issuing the `.tables` command.
+    The beanquery list of tables which beanquery exposes to the user can be derived by issuing the `.tables` command.
 
     ```shell
     beanquery> .tables
@@ -427,10 +427,6 @@ def _(mo):
     ```
 
     List of fields in every table can be obtained using the `.describe <table_name>` command
-
-    It is relatively easy therefore for anyone familiar with SQL to extract needed information, but several caveats / confusions need to be noted.
-
-    **Note:** for someone, not familiar with SQL, some of the material, described in this paragraph, may not be clear, as it refers to the information described further in details, in this case skip the material, which is not clear and come back to it later.
     """)
     return
 
@@ -446,7 +442,7 @@ def _(available_tables, heading):
 @app.cell
 def _(mo):
     mo.md(r"""
-    Beanquery supports the following type of queries
+    Beanquery supports the following type of queries, further discussed in this document
 
     * SELECT
     * BALANCES
@@ -469,7 +465,7 @@ def _(mo):
     mo.md(r"""
     The beanquery SELECT query loosely follows the standard SQL query with some deviations, which will be discussed throughout this manual
 
-    Originally **beanquery** was designed to be used to extract information on postings table only. In this situation the **FROM** part of the SQL query was "hijacked" to be used for transaction-level filtering and **WHERE** was used for posting-level filtering, which introduced so-called  two-level filtering syntax
+    It has to be noted, that originally **beanquery** was designed to be used to extract information on postings table only. In this situation the **FROM** part of the SQL query was "hijacked" to be used for transaction-level filtering and **WHERE** was used for posting-level filtering, which introduced so-called  two-level filtering syntax
 
     So, the SELECT query structure looked like this (written in the the informal EBNF language):
 
@@ -538,9 +534,7 @@ def _(mo):
 
 
     /// attention | Difference to SQL!
-
     So, let emphasize
-
     * In the traditional BQL the FROM clause is used to describe the posting-level filter, not describe the source of the data
     * In the **#table** syntax the table name has to be preceded by the # symbol
     * In the BQL using a wildcard as the target list (“*”) selects a good default list of columns, whilst the normal SQL the * is used to describe the complete set of columns, available in the table
@@ -623,6 +617,17 @@ def _(
         ])
 
     ])
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    Note, that here we use the wildcard symbol (*) to list some columns, instead of specifying column names manually.
+    /// attention | Difference to SQL!
+    * In the BQL using a wildcard as the target list (“*”) selects a good default list of columns, whilst the normal SQL the * is used to describe the complete set of columns, available in the table
+    ///
+    """)
     return
 
 
