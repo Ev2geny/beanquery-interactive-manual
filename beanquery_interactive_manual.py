@@ -166,14 +166,14 @@ def _(mo):
     mo.md(r"""
     This is an interactive manual/tutorial for the [beanquery](https://github.com/beancount/beanquery) - a customizable and extensible lightweight SQL query tool for the [Beancount](https://github.com/beancount/beancount/) ledger data.
 
-    It is created with the following goals in mind:
+    The goal is for this document to be a follow up of the beancount v2 [Beancount Query Language](https://docs.google.com/document/d/1s0GOZMcrKKCLlP29MD7kHO4L88evrwWdIO0p4EwRBE0/edit?usp=sharing) document.
+
+    It is created with the following features in mind:
 
     * to cover latest features of the beanquery
-    * to include lot of actual examples on actual ledgers
+    * to include a lot of actual examples on actual ledgers
     * to be self-documenting for the query outputs (query outputs are computed with actual beanquery as a part of the notebook execution)
     * to be interactive. If it is run as a marimo notebook, then a reader can experiment by changing default ledgers and/or queries to get an updated query outputs.
-
-    Therefore the goal is for this document to be a follow up of the beancount v2 [Beancount Query Language](https://docs.google.com/document/d/1s0GOZMcrKKCLlP29MD7kHO4L88evrwWdIO0p4EwRBE0/edit?usp=sharing) document
     """)
     return
 
@@ -184,7 +184,7 @@ def _(heading, intro_hd):
     # does not necessarily execute the cells in the top-to-bottom order, 
     # and the header numbering relies on the execution order.
     _=intro_hd
-    how_to_use__man_h =heading(3, "How to use the manual")
+    how_to_use__man_h =heading(3, "How to use this manual")
     how_to_use__man_h
     return (how_to_use__man_h,)
 
@@ -192,10 +192,25 @@ def _(heading, intro_hd):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    The document assumes no prior knowledge of the SQL language and is structured as much as possible in a form of the tutorial, where the next chapters are based on the material, covered in the previous ones. As a downside the material is more scattered across the document, then this otherwise could be the case.
+
+    For someone already familiar with the SQL it may make sense to search for special notes, which highlight differences to the classical SQL, wherever applicable, rathe then to read the entire document:
+
+    /// attention | Difference to SQL!
+    * Some difference is explained here
+    ///
+
     You can read the manual as a normal text document.
 
-    The cool feature of this notebook though is that if you read the document as a marimo notebook, you can also change the default text both for ledger and query in all examples.
-    As soon an input widget will lose focus, a query will be re-executed and output output will be updated
+    The cool feature of this notebook though is that if you read the document as a marimo notebook, you can interact with the document by changing a default text both for ledger and query in all the examples. As soon an input widget will lose focus, a query will be re-executed and output will be updated.
+
+    Note, that throughout the document some unresolved questions, marked with double questions marks.
+
+    E.g.: ?? Why do we need this.
+
+    As well as some to-does, marked with #TODO.
+
+    E.g.: _#TODO: we need to investigate this_
     """)
     return
 
@@ -220,6 +235,16 @@ def _(mo):
     beanquery>
     ```
     Beanquery started as an experiment in beancount v2, but in v3 (when **bean-report** and **bean-web** have been discontinued) became practically the only tool to query information out of beancount ledger. Thus one can say, that in v3 beancount has moved towards the [Self-service business intelligence](https://www.techtarget.com/searchbusinessanalytics/definition/self-service-business-intelligence-BI) model instead of providing off the shelf ready to use reports.
+
+    So one might ask: Why create another SQL client? Why not output the data to an SQLite database and allow the user to use that SQL client? Apparently this experiment was conducted by creating the [bean-sql](https://github.com/beancount/beancount/blob/v2/beancount/scripts/sql.py). It appears, that writing queries was painful and carrying out operations on lots that are held at cost was difficult.
+
+    Therefore the beanquery has some extrax, that are essential to be able to use it to query a Beancount ledger. These extras include (but are not necessarily limited to) the following:
+    * It allows to easily filter at two levels simultaneously: You can filter whole transactions, which has the benefit of respecting the accounting equation, and then, usually for presentation purposes, you can also filter at the postings level.
+    * Objects in one table, already have reference to related object in another table. E.g. records in the postings table have areference to related object from the transactions table. So one can say, that these tables have already been pre-joined (even though technically this not correct)
+    * The client supports the semantics of inventory booking implemented in Beancount. It also supports aggregation functions on inventory objects and rendering functions (e.g., COST() to render the cost of an inventory instead of its contents).
+    * The client supports some functions, which run on postings, but in a background access other tables (e.g. CONVERT() function, which formally operates on the amount, position or inventory, but in a background uses the prices table as well).
+    * The client allows you to flatten multiple lots into separate postings to produce lists of holdings each with their associated cost basis.  _**??** Need to put some examples here_
+    * Transactions can be summarized in a manner useful to produce balance sheets and income statements. For example, our SQL variant explicitly supports a “close” operation with an effect similar to closing the year, which inserts transactions to clear income statement accounts to equity and removes past history.
     """)
     return
 
@@ -401,7 +426,7 @@ def _(mo):
 @app.cell
 def _(heading, how_to_get_help_h):
     _= how_to_get_help_h
-    available_tables=heading(2, "Available tables", number=  True)
+    available_tables=heading(2, "Available tables. Introduction", number=  True)
     available_tables
     return (available_tables,)
 
@@ -526,11 +551,11 @@ def _(mo):
     [ORDER BY <groups> [ASC|DESC]]
     [LIMIT num]
     ```
-    Let us call it the **#table** form.
+    Let us call it the **#table** query form.
 
     Note, that:
     * The **#table** form is activated by adding the # symbol in front of the table name
-    * The **#table** form allows to query tables, different from postings table, but in case it is used to query postings table (which is possible), it lacks some functionality, available in the traditional form, namely the `[OPEN ON <date>] [CLOSE [ON <date>]] [CLEAR]` part. Later about this functinality later.
+    * The **#table** form allows to query tables, different from postings table, but in case it is used to query postings table (which is possible), it lacks some functionality, available in the traditional form, namely the `[OPEN ON <date>] [CLOSE [ON <date>]] [CLEAR]` part. (This may actually be a [bug](https://github.com/beancount/beanquery/issues/274), rather then a feature).
 
 
     /// attention | Difference to SQL!
@@ -561,7 +586,7 @@ def _(ledger_editor):
       Assets:Cash    -20 USD
       """
 
-    simple_ledger_ui = ledger_editor(_ledger, label="Ledger:")
+    simple_ledger_ui = ledger_editor(_ledger, label="Simple ledger for SELECT query")
     simple_ledger_ui
     return (simple_ledger_ui,)
 
@@ -593,7 +618,7 @@ def _(query_editor):
     FROM #postings
     WHERE account = "Expenses:Food"
     """
-    sql_ui_hash_table = query_editor(_sql, label="The same query, but using the \#table syntax")
+    sql_ui_hash_table = query_editor(_sql, label=r"The same query, but using the \#table syntax")
     # sql_ui_hash_table
     return (sql_ui_hash_table,)
 
@@ -624,6 +649,7 @@ def _(
 def _(mo):
     mo.md(r"""
     Note, that here we use the wildcard symbol (*) to list some columns, instead of specifying column names manually.
+
     /// attention | Difference to SQL!
     * In the BQL using a wildcard as the target list (“*”) selects a good default list of columns, whilst the normal SQL the * is used to describe the complete set of columns, available in the table
     ///
@@ -645,7 +671,7 @@ def _(query_editor):
     SELECT account, open.date, close.date
     FROM #accounts
     """
-    sql_ui_hash_table_accounts = query_editor(_sql, label="\# table syntax query on accounts (only \#table style can be used for the accounts table)")
+    sql_ui_hash_table_accounts = query_editor(_sql, label=r"\# table syntax query on accounts (only \#table style can be used for the accounts table)")
     sql_ui_hash_table_accounts
     return (sql_ui_hash_table_accounts,)
 
@@ -659,16 +685,278 @@ def _(query_output, simple_ledger_ui, sql_ui_hash_table_accounts):
 @app.cell
 def _(heading, select_query_hd):
     _=select_query_hd
-    notable_tables_hd = heading(2, "Notable tables", number=True)
-    notable_tables_hd
-    return (notable_tables_hd,)
+    expressions_hd = heading(2, "Expressions", number=True)
+    expressions_hd
+    return (expressions_hd,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    When we talked about SQL query we mentioned, but not defined the notion of an expression. Let correct this.
+
+    An **expression** is something, which can be evaluated to a value.
+
+    A **logical expression** is an expression, which can be evaluated to a  logical value (`TRUE` or `FALSE`)
+
+    In beanquery an expression is constructed by combining **table columns**, **constants**, **operators**, and **functions**.
+    """)
+    return
 
 
 @app.cell
-def _(heading, notable_tables_hd):
-    _=notable_tables_hd
-    post_trans_relations_hd = heading(4, "Relations and available fields", number=True)
-    post_trans_relations_hd
+def _(expressions_hd, heading):
+    _=expressions_hd
+    operators_hd = heading(3, "Operators", number=True)
+    operators_hd
+    return (operators_hd,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Common comparison and logical operators are provided to operate on the available data columns:
+    * = (equality), != (inequality)
+    * < (less than), <= (less than or equal)
+    * \> (greater than), >= (greater than or equal)
+    * AND (logical conjunction)
+    * OR (logical disjunction)
+    * NOT (logical negation)
+    * IN (set membership)
+
+    Binquery  also provides a regular expression search operator into a string object:
+    * ~ (search regexp)
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Income:Salary
+    2023-01-01 open Assets:Cash 
+    2023-01-01 open Expenses:Food 
+    2023-01-01 open Expenses:Misc 
+
+    2023-01-01 * "Salary"
+      Income:Salary   -100 USD
+      Assets:Cash      100 USD
+
+    2023-01-02 * "John" "Shopping 1" #trip-berlin
+      Expenses:Food   20 USD
+      Assets:Cash    -20 USD
+
+    2023-02-03 * "Richard" "Shopping 2" #trip-london
+      Expenses:Misc   20 USD
+      Assets:Cash    -20 USD
+      """
+
+    operators_ledger_ui = ledger_editor(_ledger, label="Ledger to demonstrate operators")
+    operators_ledger_ui
+    return (operators_ledger_ui,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT 
+         date, account, payee,narration, position
+    WHERE 
+          account ~ "^Expenses"
+          AND "trip-london" IN tags
+          AND NOT payee = "John"
+    """
+    sql_ui_operators = query_editor(_sql, label=r"Operators demo query")
+    sql_ui_operators
+    return (sql_ui_operators,)
+
+
+@app.cell
+def _(operators_ledger_ui, query_output, sql_ui_operators):
+    query_output(operators_ledger_ui.value, sql_ui_operators.value) 
+    return
+
+
+@app.cell
+def _(heading, operators_hd):
+    _=operators_hd
+    constants_hd = heading(3, "Constants", number=True)
+    constants_hd
+    return (constants_hd,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    The following types of constants can be entered in the beanquery expression
+
+    * String: `"I am a string"`
+    * Date:  Dates are entered in `YYYY-MM-DD format: SELECT * WHERE date < 2024-05-20..`
+    * Integer: `1`
+    * Boolean: `TRUE, FALSE`
+    * Number:  `1.2`
+    * Null object: `NULL`       ?? How can we use this NULL in practice?
+    * ?? can we enter a set of strings constant in an expression?
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Income:Salary
+    2023-01-01 open Assets:Cash 
+
+    2023-01-01 * "Salary"
+      Income:Salary   -100 USD
+      Assets:Cash      100 USD
+      """
+
+    simple_ledger_constants_ui = ledger_editor(_ledger, label="Simple ledger for constants")
+    simple_ledger_constants_ui
+    return (simple_ledger_constants_ui,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT 
+       "I am a string" as string_const, 
+        2026-10-10 as date_const, 
+        10 as int_const,  
+        NULL as null_const, 
+        3.14 as number_const, 
+        TRUE as bool_const
+    FROM #transactions
+
+    """
+    sql_ui_constants = query_editor(_sql, label="Query has no practical sense, but it demonstrates how to enter constants in beanquery")
+    sql_ui_constants
+    return (sql_ui_constants,)
+
+
+@app.cell
+def _(query_output, simple_ledger_constants_ui, sql_ui_constants):
+    query_output(simple_ledger_constants_ui.value, sql_ui_constants.value)
+    return
+
+
+@app.cell
+def _(constants_hd, heading):
+    _=constants_hd
+    columns_functions_hd = heading(3, "Columns and Functions in expressions", number=True)
+    columns_functions_hd
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    A full list of columns and functions, available to be used to construct expressions are available via the `.help XXX` command:
+
+    * To get a help for the `SELECT` clause expressions type `.help targets`
+    * To get a help for the `FROM` clause expressions type `.help FROM`
+    * To get a help for the `WHERE` clause expressions type `.help WHERE`
+
+    Example (reduced):
+
+    ```
+    beanquery> .help from
+
+    A logical expression that consist of columns on directives (mostly
+    transactions) and simple functions.
+
+    Columns
+    -------
+
+    id: str
+      Unique id of a directive.
+
+    ...
+
+    date: date
+      The date of the directive.
+
+    ...
+
+    Functions
+    ---------
+
+    abs(decimal)
+
+    convert(amount, str)
+    convert(amount, str, date)
+    convert(position, str)
+    convert(position, str, date)
+      Coerce an amount to a particular currency.
+
+    convert(inventory, str)
+    convert(inventory, str, date)
+      Coerce an inventory to a particular currency.
+
+    ...
+    ```
+
+    Note, that the list of table columns (in this example the list of table columns in the transactions table), available via the `.help from` command is broader, then the list of columns available for the same table via the `.describe <table-name>`.
+
+    E.g. in this case the `.describe transactions` does not list the `id` and some other columns, otherwise available for the `FROM ...` clause
+
+    ```text
+    beanquery> .describe transactions
+    table transactions:
+      meta (metadata)
+      date (date)
+      flag (str)
+      payee (str)
+      narration (str)
+      tags (set)
+      links (set)
+      accounts (set[str])
+    beanquery>
+    ```
+
+    _\#TODO: investigate this and raise an issue, if applicable_
+    """)
+    return
+
+
+@app.cell
+def _(expressions_hd, heading):
+    _=expressions_hd
+    more_on_tables = heading(2, "More on tables", number=True)
+    more_on_tables
+    return (more_on_tables,)
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    This section contains some additional information on some of the tables
+    """)
+    return
+
+
+@app.cell
+def _(heading, more_on_tables):
+    _=more_on_tables
+    postings_table_hd = heading(3, "The postings table", number=True)
+    postings_table_hd
+    return (postings_table_hd,)
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    As it was already mentioned, the beanquery was originally created to work with the postings table only, therefore the postings table has some notable features
+    """)
+    return
+
+
+@app.cell
+def _(heading, postings_table_hd):
+    _=postings_table_hd
+    transaction_columns_in_postings_hd = heading(4, "Transactions columns in the postings table", number=True)
+    transaction_columns_in_postings_hd
     return
 
 
@@ -761,23 +1049,25 @@ def _(ledger_ui_post_vs_tr, query_output, sql_ui_posting_level):
 @app.cell
 def _(mo):
     mo.md(r"""
+    This is despite the fact, that logically speaking the `date` column shall be a transaction - level field.
+
     **Conclusion:** at the moment there seems to be [little reason](https://groups.google.com/g/beancount/c/HVK3_6p1FjM) to use the FROM clause transaction level-filtering in the SELECT query, as everything can be done in the WHERE part
     """)
     return
 
 
 @app.cell
-def _(heading, notable_tables_hd):
-    _=notable_tables_hd
-    jointing_posting_transaction_hd = heading(4, "Hard coded joints between postings and transactions", number=True)
-    jointing_posting_transaction_hd
+def _(heading, more_on_tables):
+    _=more_on_tables
+    hard_coded_joints_postings_transactions = heading(4, "The `entry` column", number=True)
+    hard_coded_joints_postings_transactions
     return
 
 
 @app.cell
 def _(mo):
     mo.md(r"""
-    Suppose we need to join postings with related transactions (e.g. to access posting meta field)
+    Suppose we would need to join postings with related transactions (e.g. to access posting meta field)
     In a traditional SQL environment we would probably have to do something like this.
 
     ```sql
@@ -788,7 +1078,7 @@ def _(mo):
     JOIN transactions
         ON postings.transaction_id = transactions.id
     ```
-    Beanquery however does not support [yet](https://groups.google.com/g/beancount/c/O0x0eZEp-Lk/m/WFnOS_flEQAJ) table joining, from the other side postings table returns records that include a reference to the transaction that contains them (so, they are kind of pre-joint already).
+    Beanquery however does not support [yet](https://groups.google.com/g/beancount/c/O0x0eZEp-Lk/m/WFnOS_flEQAJ) table joining, from the other side postings table returns records that include a reference to the transaction that contains them, so they are kind of pre-joint already (this is in addition to the fact that transactions columns are also available in the postings table).
 
     One can check this by issuing the `.describe postings` command:
 
@@ -851,9 +1141,138 @@ def _(ledger_ui_with_meta, query_output, sql_ui_trans_meta):
 
 
 @app.cell
-def _(heading, notable_tables_hd):
-    _=notable_tables_hd
-    select_q_conclusions_hd = heading(3, "Conclusions on using the SELECT Query", number=True)
+def _(heading, more_on_tables):
+    _=more_on_tables
+    other_accounts_column_hd = heading(4, "The `other_accounts` column", number=True)
+    other_accounts_column_hd
+    return (other_accounts_column_hd,)
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    The `other_accounts` column is another notable column in the postings table. It contains the set of accounts from other postings in the transaction, the posting in question belongs to.
+
+    Example:
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Income:Salary
+    2023-01-01 open Assets:Cash 
+    2023-01-01 open Liabilities:CreditCard
+    2023-01-01 open Expenses:Food 
+    2023-01-01 open Expenses:Misc 
+
+    2023-01-01 * "Salary"
+      Income:Salary   -100 USD
+      Assets:Cash      100 USD
+
+    2023-01-02 * "Shopping with cash"
+      Expenses:Food   10 USD
+      Expenses:Misc   10 USD
+      Assets:Cash    -20 USD
+
+    2023-01-02 * "Shopping with credit card"
+      Expenses:Food             30 USD
+      Liabilities:CreditCard   -30 USD
+      """
+
+    other_accounts_ledger_ui = ledger_editor(_ledger, label="The `other_accounts` ledger:")
+    other_accounts_ledger_ui
+    return (other_accounts_ledger_ui,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT  date, account, narration, position, other_accounts
+    """
+    sql_ui_other_accounts = query_editor(_sql, label="Let us see, what the other_accounts column contains")
+    sql_ui_other_accounts
+    return (sql_ui_other_accounts,)
+
+
+@app.cell
+def _(other_accounts_ledger_ui, query_output, sql_ui_other_accounts):
+    query_output(other_accounts_ledger_ui.value, sql_ui_other_accounts.value)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    Let us now use the `other_accounts` column to select all expenses, which were paid with the cash, rather then with the credit card. For this we will use the `IN` operator, which will be discussed later, but is intuitively understandable.
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT  date, account, narration, position
+    WHERE account = "Expenses:Food" AND 'Assets:Cash' IN other_accounts
+    """
+    sql_ui_other_accounts_cash = query_editor(_sql, label="Food, paid with the cash")
+    sql_ui_other_accounts_cash
+    return (sql_ui_other_accounts_cash,)
+
+
+@app.cell
+def _(other_accounts_ledger_ui, query_output, sql_ui_other_accounts_cash):
+    query_output(other_accounts_ledger_ui.value, sql_ui_other_accounts_cash.value)
+    return
+
+
+@app.cell
+def _(heading, postings_table_hd):
+    _=postings_table_hd
+    transactions_table_hd = heading(3, "Transactions table", number=True)
+    transactions_table_hd
+    return
+
+
+@app.cell
+def _(heading, other_accounts_column_hd):
+    _=other_accounts_column_hd
+    id_column_dh = heading(4, "The `id` column", number=True)
+    id_column_dh
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    A special column exists that identifies each transaction uniquely: “id”. It is a unique hash automatically computed from the transaction and should be stable between runs.
+    This hash is derived from the contents of the transaction object itself (if you change something about the transaction, e.g. you edit the narration, the id will change).
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT  date, narration, id
+    FROM #transactions
+    """
+    sql_ui_id = query_editor(_sql, label="Food, paid with the cash")
+    sql_ui_id
+    return (sql_ui_id,)
+
+
+@app.cell
+def _(other_accounts_ledger_ui, query_output, sql_ui_id):
+    query_output(other_accounts_ledger_ui.value, sql_ui_id.value)
+    return
+
+
+@app.cell
+def _(heading, more_on_tables):
+    _=more_on_tables
+    select_q_conclusions_hd = heading(3, "Preliminary conclusions on using the SELECT Query", number=True)
     select_q_conclusions_hd
     return
 
