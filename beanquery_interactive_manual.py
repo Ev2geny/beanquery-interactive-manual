@@ -931,7 +931,7 @@ def _(expressions_hd, heading):
 @app.cell
 def _(mo):
     mo.md(r"""
-    This section contains some additional information on some of the tables
+    This section contains some additional information on some of the tables, available in beanquery.
     """)
     return
 
@@ -992,6 +992,14 @@ def _(mo):
     return
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Let us demonstrate this on a simple ledger
+    """)
+    return
+
+
 @app.cell
 def _(ledger_editor):
     _ledger = """\
@@ -1007,9 +1015,17 @@ def _(ledger_editor):
       Assets:Cash    -20 USD
       """
 
-    ledger_ui_post_vs_tr = ledger_editor(_ledger, label="Ledger:")
-    ledger_ui_post_vs_tr
+    ledger_ui_post_vs_tr = ledger_editor(_ledger, label="Simple ledger:")
+    # ledger_ui_post_vs_tr
     return (ledger_ui_post_vs_tr,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Let us create a query to show all postings for the date of 2023-01-01
+    """)
+    return
 
 
 @app.cell
@@ -1018,14 +1034,14 @@ def _(query_editor):
     SELECT *
     FROM date = 2023-01-01
     """
-    sql_ui_trans_level = query_editor(_sql, label="Let us use transaction-level filtering to filter posting at the date 2023-01-01")
-    sql_ui_trans_level
+    sql_ui_trans_level = query_editor(_sql, label="Using transaction-level filtering")
+    # sql_ui_trans_level
     return (sql_ui_trans_level,)
 
 
 @app.cell
-def _(ledger_ui_post_vs_tr, query_output, sql_ui_trans_level):
-    query_output(ledger_ui_post_vs_tr.value, sql_ui_trans_level.value)
+def _():
+    # query_output(ledger_ui_post_vs_tr.value, sql_ui_trans_level.value)
     return
 
 
@@ -1035,21 +1051,40 @@ def _(query_editor):
     SELECT *
     WHERE date = 2023-01-01
     """
-    sql_ui_posting_level = query_editor(_sql, label="The same result at posting level filtering")
-    sql_ui_posting_level
+    sql_ui_posting_level = query_editor(_sql, label="Using posting level filtering")
+    # sql_ui_posting_level
     return (sql_ui_posting_level,)
 
 
 @app.cell
-def _(ledger_ui_post_vs_tr, query_output, sql_ui_posting_level):
-    query_output(ledger_ui_post_vs_tr.value, sql_ui_posting_level.value)
+def _():
+    # query_output(ledger_ui_post_vs_tr.value, sql_ui_posting_level.value)
+    return
+
+
+@app.cell
+def _(
+    ledger_ui_post_vs_tr,
+    mo,
+    query_output,
+    sql_ui_posting_level,
+    sql_ui_trans_level,
+):
+    mo.hstack([
+        mo.vstack([
+            sql_ui_trans_level,
+            query_output(ledger_ui_post_vs_tr.value, sql_ui_trans_level.value)
+        ]),
+        mo.vstack([sql_ui_posting_level,
+        query_output(ledger_ui_post_vs_tr.value, sql_ui_posting_level.value)])
+    ])
     return
 
 
 @app.cell
 def _(mo):
     mo.md(r"""
-    This is despite the fact, that logically speaking the `date` column shall be a transaction - level field.
+    We can see, that we can use the field `date` both withing the FROM clause (transaction-level filter) as well as with the clause WHERE (postings-level filter)  .This is despite the fact, that logically speaking the `date` column shall be a transaction - level field only
 
     **Conclusion:** at the moment there seems to be [little reason](https://groups.google.com/g/beancount/c/HVK3_6p1FjM) to use the FROM clause transaction level-filtering in the SELECT query, as everything can be done in the WHERE part
     """)
@@ -1205,7 +1240,7 @@ def _(other_accounts_ledger_ui, query_output, sql_ui_other_accounts):
 @app.cell
 def _(mo):
     mo.md(r"""
-    Let us now use the `other_accounts` column to select all expenses, which were paid with the cash, rather then with the credit card. For this we will use the `IN` operator, which will be discussed later, but is intuitively understandable.
+    Let us now use the `other_accounts` column to select all expenses, which were paid with the cash, rather then with the credit card.
     """)
     return
 
@@ -1214,9 +1249,9 @@ def _(mo):
 def _(query_editor):
     _sql = """\
     SELECT  date, account, narration, position
-    WHERE account = "Expenses:Food" AND 'Assets:Cash' IN other_accounts
+    WHERE  account ~ '^Expenses' AND'Assets:Cash' IN other_accounts
     """
-    sql_ui_other_accounts_cash = query_editor(_sql, label="Food, paid with the cash")
+    sql_ui_other_accounts_cash = query_editor(_sql, label="Expenses, paid with cash")
     sql_ui_other_accounts_cash
     return (sql_ui_other_accounts_cash,)
 
@@ -1224,6 +1259,14 @@ def _(query_editor):
 @app.cell
 def _(other_accounts_ledger_ui, query_output, sql_ui_other_accounts_cash):
     query_output(other_accounts_ledger_ui.value, sql_ui_other_accounts_cash.value)
+    return
+
+
+@app.cell
+def _(heading, other_accounts_column_hd):
+    _=other_accounts_column_hd
+    balance_column_hd = heading(4, 'The “balance” Column', number=True)
+    balance_column_hd 
     return
 
 
@@ -1248,6 +1291,57 @@ def _(mo):
     mo.md(r"""
     A special column exists that identifies each transaction uniquely: “id”. It is a unique hash automatically computed from the transaction and should be stable between runs.
     This hash is derived from the contents of the transaction object itself (if you change something about the transaction, e.g. you edit the narration, the id will change).
+
+    Evn though the `id` field belongs to the transaction, it is not available in the `transactions` table. The only way to find it is to look in postings via traditional query.
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Income:Salary
+    2023-01-01 open Assets:Cash 
+    2023-01-01 open Expenses:Food 
+
+    2023-01-01 * "Salary"
+      Income:Salary   -100 USD
+      Assets:Cash      100 USD
+
+    2023-01-02 * "Shopping 1"
+      Expenses:Food   10 USD
+      Assets:Cash    -10 USD
+  
+    2023-01-02 * "Shopping 2"
+      Expenses:Food   20 USD
+      Assets:Cash    -20 USD
+      """
+
+    ledger_id_ui = ledger_editor(_ledger, label="Simple ledger for to test id column")
+    ledger_id_ui
+    return (ledger_id_ui,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT  date, account, narration, position, id
+    """
+    sql_ui_id_postings = query_editor(_sql, label="Show some columns including the id column")
+    sql_ui_id_postings
+    return (sql_ui_id_postings,)
+
+
+@app.cell
+def _(ledger_id_ui, query_output, sql_ui_id_postings):
+    query_output(ledger_id_ui.value, sql_ui_id_postings.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Once the `id` field is known, one can use it also for the transaction - level filtering.  E.g. one can use the `PRINT` query (discussed later) to print the specific entry. This can be useful during debugging.
     """)
     return
 
@@ -1255,17 +1349,16 @@ def _(mo):
 @app.cell
 def _(query_editor):
     _sql = """\
-    SELECT  date, narration, id
-    FROM #transactions
+    PRINT from id = '5801fa0babefb50972631ce070888875'
     """
-    sql_ui_id = query_editor(_sql, label="Food, paid with the cash")
-    sql_ui_id
-    return (sql_ui_id,)
+    sql_ui_id_print = query_editor(_sql, label="PRINT specific entry by id")
+    sql_ui_id_print
+    return (sql_ui_id_print,)
 
 
 @app.cell
-def _(other_accounts_ledger_ui, query_output, sql_ui_id):
-    query_output(other_accounts_ledger_ui.value, sql_ui_id.value)
+def _(ledger_id_ui, query_output, sql_ui_id_print):
+    query_output(ledger_id_ui.value, sql_ui_id_print.value)
     return
 
 
