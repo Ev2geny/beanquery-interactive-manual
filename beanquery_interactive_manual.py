@@ -9,7 +9,7 @@
 
 import marimo
 
-__generated_with = "0.20.4"
+__generated_with = "0.22.0"
 app = marimo.App(width="medium", css_file="custom.css")
 
 
@@ -1265,8 +1265,118 @@ def _(other_accounts_ledger_ui, query_output, sql_ui_other_accounts_cash):
 @app.cell
 def _(heading, other_accounts_column_hd):
     _=other_accounts_column_hd
-    balance_column_hd = heading(4, 'The “balance” Column', number=True)
+    balance_column_hd = heading(4, 'The “balance” column', number=True)
     balance_column_hd 
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    One common desired output is a journal of entries over time (also called a “register” in Ledger).
+    For this type of report, it is convenient to also render a column of the cumulative balance of the selected postings rows. Access to the previous row is not a standard SQL feature, so we get a little creative and provide a special column called “balance” which is automatically calculated based on the previous selected rows. This provides the ability to render typical account statements such as those mailed to you by a bank. Output might look like this:
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Income:Salary
+    2023-01-01 open Assets:Bank-A
+    2023-01-01 open Assets:Bank-B
+    2023-01-01 open Expenses:Misc 
+
+    2023-01-01 * "Salary"
+      Income:Salary   -1000 USD
+      Assets:Bank-A    750 USD
+      Assets:Bank-B    250 USD
+
+    2023-01-02 * "Shopping using Bank-A"
+      Expenses:Misc    100 USD
+      Assets:Bank-A   -100 USD
+
+    2023-01-03 * "Shopping using Bank-B"
+      Expenses:Misc    110 USD
+      Assets:Bank-B   -110 USD
+
+    2023-01-04 * "Shopping using Bank-A again"
+      Expenses:Misc    120 USD
+      Assets:Bank-A   -120 USD
+      """
+
+    balance_ledger_ui = ledger_editor(_ledger, label="The `balance` ledger:")
+    balance_ledger_ui
+    return (balance_ledger_ui,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT  date, account, narration, position, balance
+    WHERE account = "Assets:Bank-A"
+    """
+    sql_ui_balance = query_editor(_sql, label="Bank-A balance over time")
+    sql_ui_balance
+    return (sql_ui_balance,)
+
+
+@app.cell
+def _(balance_ledger_ui, query_output, sql_ui_balance):
+    query_output(balance_ledger_ui.value, sql_ui_balance.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Note, that the beanquery starts counting balance from 0 and takes into account all postings, which pass through the filter. Therefore if the goal is to have a bank equivalent balance information, then one shall not put any filters, which would filter out any postings to the bank account account. E.g. if we put a filter to start later, then the result would be different.
+
+    Also selecting more than 1 bank account would create a result, different from what you get from your bank statement:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT  date, account, narration, position, balance
+    WHERE account = "Assets:Bank-A" AND date > 2023-01-01
+    """
+    sql_ui_balance_start_later = query_editor(_sql, label="Bank-A balance, starting later")
+    # sql_ui_balance_start_later
+    return (sql_ui_balance_start_later,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT  date, account, narration, position, balance
+    WHERE account = "Assets:Bank-A" OR account = "Assets:Bank-B"
+    """
+    sql_ui_balance_more_than_1 = query_editor(_sql, label="Bank-A, Bank-B balance over time")
+    # sql_ui_balance_more_than_1
+    return (sql_ui_balance_more_than_1,)
+
+
+@app.cell
+def _(
+    balance_ledger_ui,
+    mo,
+    query_output,
+    sql_ui_balance_more_than_1,
+    sql_ui_balance_start_later,
+):
+    mo.hstack([
+        mo.vstack([
+            sql_ui_balance_start_later,
+            query_output(balance_ledger_ui.value, sql_ui_balance_start_later.value)   
+        ]),
+        mo.vstack([
+            sql_ui_balance_more_than_1,
+            query_output(balance_ledger_ui.value, sql_ui_balance_more_than_1.value)   
+        ])
+    ])
     return
 
 
@@ -1275,6 +1385,15 @@ def _(heading, postings_table_hd):
     _=postings_table_hd
     transactions_table_hd = heading(3, "Transactions table", number=True)
     transactions_table_hd
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    One common desired output is a journal of entries over time (also called a “register” in Ledger).
+    For this type of report, it is convenient to also render a column of the cumulative balance of the selected postings rows. Access to the previous row is not a standard SQL feature, so we get a little creative and provide a special column called “balance” which is automatically calculated based on the previous selected row.
+    """)
     return
 
 
@@ -1311,7 +1430,7 @@ def _(ledger_editor):
     2023-01-02 * "Shopping 1"
       Expenses:Food   10 USD
       Assets:Cash    -10 USD
-  
+
     2023-01-02 * "Shopping 2"
       Expenses:Food   20 USD
       Assets:Cash    -20 USD
