@@ -192,9 +192,9 @@ def _(heading, intro_hd):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    The document assumes no prior knowledge of the SQL language and is structured as much as possible in a form of the tutorial, where the next chapters are based on the material, covered in the previous ones. As a downside the material is more scattered across the document, then this otherwise could be the case.
+    The document assumes no prior knowledge of the SQL language and is structured as much as possible in the form of a tutorial, where each chapter builds on the material covered in the previous ones. As a downside, the material is more scattered throughout the document than it would otherwise be.
 
-    For someone already familiar with the SQL it may make sense to search for special notes, which highlight differences to the classical SQL, wherever applicable, rathe then to read the entire document:
+    For someone already familiar with SQL, it may make sense to search for special notes that highlight differences from classical SQL, wherever applicable, rather than to read the entire document:
 
     /// attention | Difference to SQL!
     * Some difference is explained here
@@ -202,9 +202,9 @@ def _(mo):
 
     You can read the manual as a normal text document.
 
-    The cool feature of this notebook though is that if you read the document as a marimo notebook, you can interact with the document by changing a default text both for ledger and query in all the examples. As soon an input widget will lose focus, a query will be re-executed and output will be updated.
+    The cool feature of this notebook is that if you read it as a marimo notebook, you can interact with the document by changing the default text for both the ledger and the query in all examples. As soon as an input widget loses focus, the query will be re-executed and the output will be updated.
 
-    Note, that throughout the document some unresolved questions, marked with double questions marks.
+    Note that throughout the document some unresolved questions are marked with double question marks.
 
     E.g.: ?? Why do we need this.
 
@@ -232,9 +232,9 @@ def _(mo):
 
     So one might ask: Why create another SQL client? Why not output the data to an SQLite database and allow the user to use that SQL client? Apparently this experiment was conducted by creating the [bean-sql](https://github.com/beancount/beancount/blob/v2/beancount/scripts/sql.py). It appears, that writing queries was painful and carrying out operations on lots that are held at cost was difficult.
 
-    Therefore the beanquery has some extrax, that are essential to be able to use it to query a Beancount ledger. These extras include (but are not necessarily limited to) the following:
-    * It allows to easily filter at two levels simultaneously: You can filter whole transactions, which has the benefit of respecting the accounting equation, and then, usually for presentation purposes, you can also filter at the postings level.
-    * Objects in one table, already have reference to related object in another table. E.g. records in the postings table have areference to related object from the transactions table. So one can say, that these tables have already been pre-joined (even though technically this not correct)
+    Therefore beanquery has some extras that are essential for querying a Beancount ledger. These extras include (but are not necessarily limited to) the following:
+    * It allows filtering at two levels simultaneously: you can filter whole transactions, which has the benefit of respecting the accounting equation, and then, usually for presentation purposes, you can also filter at the postings level.
+    * Objects in one table already have a reference to related objects in another table. E.g. records in the postings table have a reference to the related object from the transactions table. So one can say that these tables have already been pre-joined (even though technically this is not correct).
     * The client supports the semantics of inventory booking implemented in Beancount. It also supports aggregation functions on inventory objects and rendering functions (e.g., COST() to render the cost of an inventory instead of its contents).
     * The client supports some functions, which run on postings, but in a background access other tables (e.g. CONVERT() function, which formally operates on the amount, position or inventory, but in a background uses the prices table as well).
     * The client allows you to flatten multiple lots into separate postings to produce lists of holdings each with their associated cost basis.  _**??** Need to put some examples here_
@@ -360,7 +360,7 @@ def _(mo):
 
     To see list of columns, available in every table type `.describe <table name>`
 
-    e.g. to see list of columns in the **postigs** table type
+    e.g. to see list of columns in the **postings** table type
 
     ```shell
     beanquery> .describe postings
@@ -486,7 +486,7 @@ def _(mo):
 
     It has to be noted, that originally **beanquery** was designed to be used to extract information on postings table only. In this situation the **FROM** part of the SQL query was "hijacked" to be used for transaction-level filtering and **WHERE** was used for posting-level filtering, which introduced so-called  two-level filtering syntax
 
-    So, the SELECT query structure looked like this (written in the the informal EBNF language):
+    So, the SELECT query structure looked like this (written in the informal EBNF language):
 
     ```text
     SELECT [DISTINCT] [<targets>|*]
@@ -497,7 +497,7 @@ def _(mo):
     [LIMIT num]
     ```
 
-    Let us call is the **traditional SELECT query form**.
+    Let us call it the **traditional SELECT query form**.
 
     /// details | **Note about the informal EBNF language**
         type: info
@@ -535,7 +535,7 @@ def _(mo):
 
     ///
 
-    Later on, in beancount v3, when the beanquery was moved to be a standalone tool, it was extended to query more tables (see above), in this situation the FROM part was needed again to select a table, so the new form of the SELECT query was introduced
+    Later on, in beancount v3, when beanquery was moved to be a standalone tool, it was extended to query more tables (see above). In this situation the FROM part was needed again to select a table, so a new form of the SELECT query was introduced:
 
     ```text
     SELECT [DISTINCT] [<targets>|*]
@@ -547,14 +547,14 @@ def _(mo):
     ```
     Let us call it the **#table** query form.
 
-    Note, that:
+    Note that:
     * The **#table** form is activated by adding the # symbol in front of the table name
-    * The **#table** form allows to query tables, different from postings table, but in case it is used to query postings table (which is possible), it lacks some functionality, available in the traditional form, namely the `[OPEN ON <date>] [CLOSE [ON <date>]] [CLEAR]` part. (This may actually be a [bug](https://github.com/beancount/beanquery/issues/274), rather then a feature).
+    * The **#table** form allows querying tables other than the postings table, but when it is used to query the postings table (which is possible), it lacks some functionality available in the traditional form, namely the `[OPEN ON <date>] [CLOSE [ON <date>]] [CLEAR]` part. (This may actually be a [bug](https://github.com/beancount/beanquery/issues/274), rather than a feature).
 
 
     /// attention | Difference to SQL!
-    So, let emphasize
-    * In the traditional BQL the FROM clause is used to describe the posting-level filter, not describe the source of the data
+    So, let us emphasize:
+    * In the traditional BQL the FROM clause is used to describe the posting-level filter, not to describe the source of the data
     * In the **#table** syntax the table name has to be preceded by the # symbol
     * In the BQL using a wildcard as the target list (“*”) selects a good default list of columns, whilst the normal SQL the * is used to describe the complete set of columns, available in the table
     ///
@@ -718,10 +718,10 @@ def _(mo):
     * NOT (logical negation)
     * IN (set membership)
 
-    Binquery  also provides a regular expression search operator into a string object:
+    Beanquery also provides a regular expression search operator on string objects:
     * ~ (search regexp)
 
-    The below example demonstrates few of these operators
+    The example below demonstrates a few of these operators
     """)
     return
 
@@ -975,7 +975,7 @@ def _(mo):
     mo.md(r"""
     The contents of a ledger is parsed into a list of directives, most of which are “Transaction” objects which contain two or more “Posting” objects. Postings are always linked only to a single transaction (they are never shared between transactions). Each posting refers to its parent transaction but has a unique account name, amount and associated lot (possibly with a cost), a price and some other attributes. The parent transaction itself contains a few useful attributes as well, such as a date, the name of a payee, a narration string, a flag, links, tags, etc.
 
-    So, one can think, that such attribute as **date** or **narration** belong to transaction object, whilst attributes like **account** belongs to posting object. However (probably for simplicity) all of the transaction-level fields are also made avaiable in the posting objects (the only exeption being the transaction meta, which is not available from the posting). One can check this by comparing the outputs of the **`.describe postings`** and **`.describe transactions`** commands.
+    So, one can think that attributes such as **date** or **narration** belong to the transaction object, whilst attributes like **account** belong to the posting object. However (probably for simplicity) all of the transaction-level fields are also made available in the posting objects (the only exception being the transaction meta, which is not available from the posting). One can check this by comparing the outputs of the **`.describe postings`** and **`.describe transactions`** commands.
 
     So, from the beanquery data model the diagram looks more like this
     """)
@@ -1080,7 +1080,7 @@ def _(
 @app.cell
 def _(mo):
     mo.md(r"""
-    We can see, that we can use the field `date` both withing the FROM clause (transaction-level filter) as well as with the clause WHERE (postings-level filter)  .This is despite the fact, that logically speaking the `date` column shall be a transaction - level field only
+    We can see that the field `date` can be used both within the FROM clause (transaction-level filter) and the WHERE clause (postings-level filter). This is despite the fact that, logically speaking, the `date` column should be a transaction-level field only.
 
     **Conclusion:** at the moment there seems to be [little reason](https://groups.google.com/g/beancount/c/HVK3_6p1FjM) to use the FROM clause transaction level-filtering in the SELECT query, as everything can be done in the WHERE part
     """)
@@ -1109,7 +1109,7 @@ def _(mo):
     JOIN transactions
         ON postings.transaction_id = transactions.id
     ```
-    Beanquery however does not support [yet](https://groups.google.com/g/beancount/c/O0x0eZEp-Lk/m/WFnOS_flEQAJ) table joining, from the other side postings table returns records that include a reference to the transaction that contains them, so they are kind of pre-joint already (this is in addition to the fact that transactions columns are also available in the postings table).
+    Beanquery however does not support [yet](https://groups.google.com/g/beancount/c/O0x0eZEp-Lk/m/WFnOS_flEQAJ) table joining. On the other hand, the postings table returns records that include a reference to the transaction that contains them, so they are kind of pre-joined already (in addition to the fact that transaction columns are also available in the postings table).
 
     One can check this by issuing the `.describe postings` command:
 
@@ -1121,7 +1121,7 @@ def _(mo):
       accounts (set[str])
     beanquery>
     ```
-    Let us see, how we can do this my pulling both transaction meta and postings meta:
+    Let us see how we can do this by pulling both transaction meta and posting meta:
     """)
     return
 
@@ -1236,7 +1236,7 @@ def _(other_accounts_ledger_ui, query_output, sql_ui_other_accounts):
 @app.cell
 def _(mo):
     mo.md(r"""
-    Let us now use the `other_accounts` column to select all expenses, which were paid with the cash, rather then with the credit card.
+    Let us now use the `other_accounts` column to select all expenses that were paid with cash rather than with a credit card.
     """)
     return
 
@@ -1503,7 +1503,7 @@ def _(mo):
     These special operators are provided on the FROM clause that is made available on the various forms of query commands in the shell. These further transform the set of entries selected by the FROM expression at the transaction levels (not postings).
     Please note that these are not from standard SQL; these are extensions provided by this shell language only.
 
-    For demonstrations let use use the following ledger (borrowed with some changes from the [summarize_test](https://github.com/beancount/beancount/blob/master/beancount/ops/summarize_test.py))
+    For demonstrations let us use the following ledger (borrowed with some changes from the [summarize_test](https://github.com/beancount/beancount/blob/master/beancount/ops/summarize_test.py))
     """)
     return
 
@@ -1678,7 +1678,7 @@ def _(
 @app.cell
 def _(mo):
     mo.md(r"""
-    One can see, that balances on Assets and Liabilities did not change, but Income and Expenses were summarized in to the Equity:Earnings:Previous
+    One can see that balances on Assets and Liabilities did not change, but Income and Expenses were summarized into Equity:Earnings:Previous.
     """)
     return
 
