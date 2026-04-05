@@ -2101,23 +2101,66 @@ def _(mo):
 @app.cell
 def _(query_editor):
     _sql = """\
-    BALANCES AT COST FROM DATE <=2023-01-03 
+    BALANCES 
+    FROM DATE <=2023-01-03 
     """
-    sql_ui_balances = query_editor(_sql, label="Equivalent to JOURNAL SELECT ... WHERE query")
-    sql_ui_balances
+    sql_ui_balances = query_editor(_sql, label="BALANCES query")
+    # sql_ui_balances
     return (sql_ui_balances,)
 
 
 @app.cell
-def _(ledger_ui_journal, query_output, sql_ui_balances):
-    query_output(ledger_ui_journal.value, sql_ui_balances.value)
+def _():
+    # query_output(ledger_ui_journal.value, sql_ui_balances.value)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, SUM(position)
+    WHERE date <=2023-01-03 
+    """
+    sql_ui_balances_where = query_editor(_sql, label="Equivalent to BALANCES SELECT ... WHERE query")
+    # sql_ui_balances_where
+    return (sql_ui_balances_where,)
+
+
+@app.cell
+def _():
+    # query_output(ledger_ui_journal.value, sql_ui_balances_where.value)
+    return
+
+
+@app.cell
+def _(
+    ledger_ui_journal,
+    mo,
+    query_output,
+    sql_ui_balances,
+    sql_ui_balances_where,
+):
+    mo.vstack([
+        mo.hstack([
+            mo.vstack([
+                sql_ui_balances,
+                query_output(ledger_ui_journal.value, sql_ui_balances.value)
+            ]),
+            mo.vstack([
+                sql_ui_balances_where,
+                query_output(ledger_ui_journal.value, sql_ui_balances_where.value)
+            ])
+        ])
+    ])
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ?? The SELECT ... WHERE query seemsto be able to offer the same functionality, but with a better flexibility as it is also possible to filter spesific accounts
+    ?? Seems that the SELECT ... WHERE  offers the same functionality, but with a better flexibility. E.g. it is also possible to filter spesific accounts, and / or apply the root() function to accounts.
+
+    E.g.: would it be possible to do the following with the BALANCES query, where we select balances only for assets?
     """)
     return
 
@@ -2125,17 +2168,17 @@ def _(mo):
 @app.cell
 def _(query_editor):
     _sql = """\
-    SELECT account, SUM(COST(position))
-    WHERE date <=2023-01-03 
+    SELECT root(account,1) as account_short, SUM(position)
+    WHERE date <=2023-01-03 AND account ~ "^Assets"
     """
-    sql_ui_balances_where = query_editor(_sql, label="Equivalent to JOURNAL SELECT ... WHERE query")
-    sql_ui_balances_where
-    return (sql_ui_balances_where,)
+    sql_ui_balances_where_per_account = query_editor(_sql, label="Balances per set of accounts with WHERE filter")
+    sql_ui_balances_where_per_account
+    return (sql_ui_balances_where_per_account,)
 
 
 @app.cell
-def _(ledger_ui_journal, query_output, sql_ui_balances_where):
-    query_output(ledger_ui_journal.value, sql_ui_balances_where.value)
+def _(ledger_ui_journal, query_output, sql_ui_balances_where_per_account):
+    query_output(ledger_ui_journal.value, sql_ui_balances_where_per_account.value)
     return
 
 
