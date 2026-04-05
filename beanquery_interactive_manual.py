@@ -2190,5 +2190,38 @@ def _(balances_hd, heading):
     return
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    It can be useful to generate output in Beancount format, so that subsets of transactions can be saved to files, for example. The shell provides that ability via the PRINT command:
+
+    `
+    PRINT [FROM …]
+    `
+
+    The FROM clause obeys the usual semantics as described elsewhere in this document. The resulting filtered stream of Beancount entries is then printed out on the output in Beancount syntax.
+    In particular, just running the `PRINT` command will spit out the parsed and loaded contents of a Beancount file. You can use this for troubleshooting if needed, or to expand transactions generated from a plugin you may be in the process of developing.
+
+    Example:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    PRINT FROM date >=2023-01-02 
+    """
+    sql_ui_print = query_editor(_sql, label="Print entries from a specific date")
+    sql_ui_print
+    return (sql_ui_print,)
+
+
+@app.cell
+def _(ledger_ui_journal, query_output, sql_ui_print):
+    query_output(ledger_ui_journal.value, sql_ui_print.value)
+    return
+
+
 if __name__ == "__main__":
     app.run()
