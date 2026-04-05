@@ -9,7 +9,7 @@
 
 import marimo
 
-__generated_with = "0.22.0"
+__generated_with = "0.22.4"
 app = marimo.App(width="medium", css_file="custom.css")
 
 
@@ -76,8 +76,27 @@ def _():
             return buf.getvalue()
 
         except Exception as e:
-            return f"BeanQuery error: {type(e).__name__}: {e}"
-            # raise e  # re-raise to show in marimo error UI
+            parseinfo = getattr(e, 'parseinfo', None)
+            if parseinfo is not None:
+                pos = parseinfo.pos
+                endpos = parseinfo.endpos
+                lineno = parseinfo.line
+                text = parseinfo.tokenizer.text
+                lines = text.splitlines(True)
+                col = pos
+                for line in lines[:lineno]:
+                    col -= len(line)
+                out = [f"error: {e}"]
+                strip = True
+                for line in lines[:lineno]:
+                    if strip and not line.rstrip():
+                        continue
+                    strip = False
+                    out.append('| ' + line.rstrip().expandtabs())
+                out.append('| ' + lines[lineno].rstrip().expandtabs())
+                out.append('| ' + ' ' * col + '^' * max(1, endpos - pos))
+                return '\n'.join(out)
+            return f"error: {type(e).__name__}: {e}"
 
     def query_output(ledger_text: str, query: str) -> mo.Html:
         """
@@ -1964,7 +1983,7 @@ def _(heading, high_level_shortcuts_hd):
     _=high_level_shortcuts_hd
     journal_hd = heading(3, "Selecting Journals (JOURNAL query)", number=True)
     journal_hd
-    return
+    return (journal_hd,)
 
 
 @app.cell
@@ -2055,27 +2074,76 @@ def _(ledger_ui_journal, query_output, sql_ui_journal_balance):
     return
 
 
+@app.cell
+def _(heading, journal_hd):
+    _=journal_hd
+    balances_hd = heading(3, "Selecting Balances (BALANCES query)", number=True)
+    balances_hd
+    return (balances_hd,)
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### Selecting Balances
+    The other most common type of report is a table of the balances of various accounts at a particular date. This can be viewed as a SELECT query aggregating positions grouping by account.
+    You can generate a balances report with the following syntax:
+
+    `BALANCES [AT <function>] [FROM …]`
+
+    The optional `AT <function>` clause is used to specify an aggregation function for the balances rendered (usually UNITS or COST). The `FROM` clause follows the same rules as for the SELECT statement and is optional.
+    To generate your balances at a particular date, close your set of entries using the `FROM… CLOSE ON` form described above.
+
+    Observe that typical balance sheets and income statements seen in an accounting context are subsets of tables of balances such as reported by this query. An income statement reports on just the transactions that appears during a period of time, and a balance sheet summarizes transactions before its reporting before and clears the income & expenses accumulated during the period to an equity account. Then some minor reformatting is carried out. Please consult the introduction document on double-entry bookkeeping for more details, and the section above that discusses the “open”, “close” and “clear” operations.
     """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    BALANCES AT COST FROM DATE <=2023-01-03 
+    """
+    sql_ui_balances = query_editor(_sql, label="Equivalent to JOURNAL SELECT ... WHERE query")
+    sql_ui_balances
+    return (sql_ui_balances,)
+
+
+@app.cell
+def _(ledger_ui_journal, query_output, sql_ui_balances):
+    query_output(ledger_ui_journal.value, sql_ui_balances.value)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ##
+    ?? The SELECT ... WHERE query seemsto be able to offer the same functionality, but with a better flexibility as it is also possible to filter spesific accounts
     """)
     return
 
 
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    ### Print
-    """)
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, SUM(COST(position))
+    WHERE date <=2023-01-03 
+    """
+    sql_ui_balances_where = query_editor(_sql, label="Equivalent to JOURNAL SELECT ... WHERE query")
+    sql_ui_balances_where
+    return (sql_ui_balances_where,)
+
+
+@app.cell
+def _(ledger_ui_journal, query_output, sql_ui_balances_where):
+    query_output(ledger_ui_journal.value, sql_ui_balances_where.value)
+    return
+
+
+@app.cell
+def _(balances_hd, heading):
+    _=balances_hd
+    print_hd = heading(3, "Print (PRINT query)", number=True)
+    print_hd
     return
 
 
