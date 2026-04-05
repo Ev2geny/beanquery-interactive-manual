@@ -291,7 +291,7 @@ def _(mo):
     bean-query [OPTIONS] FILENAME [QUERY]...
     ```
 
-    **Result:** beanquery will load ledger and start the beanquery client
+    This launches the query tool in interactive mode, where you can enter multiple commands on the dataset loaded in memory. The beanquery parses the input file, spits out a few basic statistics about your ledger, and provides a command prompt for you to enter query commands.
 
     e.g.:
 
@@ -302,11 +302,55 @@ def _(mo):
     beanquery>
     ```
 
+    If any errors in your ledger are incurred, they are printed before the prompt.
+
+    E.g.:
+
+    ```shell
+    PS C:\_code\bean> bean-query test.bean
+    C:\_code\bean\test.bean:7: syntax error, unexpected ACCOUNT
+
+    Input file: "Beancount"
+    Ready with 8 directives (6 postings in 4 transactions, 1 validation errors)
+    beanquery>
+    ```
+
     You can also start beanquery as a python module
 
     ```shell
     python -m beanquery [OPTIONS] FILENAME [QUERY]...
     ```
+
+    If you’d like to run queries directly from the command-line, without an interactive prompt, you can provide the query directly following your filename:
+
+    ```shell
+    $ bean-query myfile.beancount 'balances from year = 2014'
+                         account                       balance
+    ----------------------------------------------------------------------
+    … <balances follow> …
+    ```
+
+    All the interactive commands are supported.
+
+    **Shell Variables**
+
+    The interactive shell has a few “set” variables that you can customize to change some of the behavior of the shell. These are like environment variables. Type the `.set` command to see the list of available variables and their current value.
+
+    The variables are:
+
+    * boxed (boolean): Whether we should draw a box around the output table.
+    * expand (boolean): If true, expand columns that render to lists on multiple rows.
+    * format (string): The output format. Currently, only “text” is supported.
+    * narrow (boolean): Whether the column header names are truncated, underling selected data allows
+    * nullvalue: '' ?? what does it do?
+    * numberify: (boolean): If set to `true` splits columns that contain monetary types (Amount, Position, Inventory) into separate plain-number columns — one per currency found in that column.
+    * pager (string): The name of the pager program to pipe multi-page output to when the output is larger than the screen. The initial value is copied from the PAGER environment variable.
+    * spaced (boolean): Whether to insert an empty line between every result row. This is only relevant because postings with multiple lots may require multiple lines to be rendered, and inserting an empty line helps delineate those as separate.
+    * unicode: (boolean): ?? what does it do?
+
+    To change the invironmental variable from the default one type `.set <variable-name> <new-value>`. E.g.:
+
+    `.set numberify true`
     """)
     return
 
@@ -441,7 +485,7 @@ def _(heading, how_to_get_help_h):
 @app.cell
 def _(mo):
     mo.md(r"""
-    The beanquery list of tables which beanquery exposes to the user can be derived by issuing the `.tables` command.
+    The list of tables which beanquery exposes to the user can be derived by issuing the `.tables` command.
 
     ```shell
     beanquery> .tables
@@ -459,6 +503,8 @@ def _(mo):
     ```
 
     List of fields in every table can be obtained using the `.describe <table_name>` command
+
+    Note: for the postings table the more complete list of columns can be obtained used the `.help targets` command.
     """)
     return
 
@@ -701,7 +747,7 @@ def _(mo):
 
     A **logical expression** is an expression, which can be evaluated to a  logical value (`TRUE` or `FALSE`)
 
-    In beanquery an expression is constructed by combining **table columns**, **constants**, **operators**, and **functions**.
+    In beanquery an expression is constructed by combining **table columns**, **constants**, **operators**, and **functions**. All of these elements are described later in this document.
     """)
     return
 
