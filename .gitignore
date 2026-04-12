@@ -211,3 +211,5 @@ references/
 .claude/
 
 .idea/
+.vscode/
+tmp/

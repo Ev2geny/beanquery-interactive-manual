@@ -146,6 +146,7 @@ def _():
     class Heading:
         """A rendered heading with its hierarchical number, used to chain headings in sequence."""
         def __init__(self, html: mo.Html, number: list):
+            # pass
             self._html = html
             self.number = number
 
@@ -174,7 +175,7 @@ def _():
             own = (prev_num[idx] + 1) if len(prev_num) > idx else 1
             num = parent + [own]
             prefix = ".".join(str(n) for n in num) + ". "
-        html = mo.md(f"<h{level}>{prefix}{text}</h{level}>")
+        html = mo.md(f"{'#' * level} {prefix}{text}")
         return Heading(html, num)
 
 
@@ -1309,7 +1310,7 @@ def _(other_accounts_ledger_ui, query_output, sql_ui_other_accounts_cash):
 
 @app.cell
 def _(heading, other_accounts_column_hd):
-    balance_column_hd = heading(4, 'The “balance” column', other_accounts_column_hd, number=True)
+    balance_column_hd = heading(4, 'The `balance` column', other_accounts_column_hd, number=True)
     balance_column_hd
     return
 
@@ -1530,7 +1531,7 @@ def _(mo):
     * use the #table form for all other tables
     * no particular need to use the **FROM** - clause filtering in the SELECT query, as all the fields are also available for the **WHERE** clause
 
-    ?? Are my conclusions correct?
+    ?? Are these conclusions correct?
     """)
     return
 
