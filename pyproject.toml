@@ -7,6 +7,6 @@ requires-python = ">=3.13"
 dependencies = [
     "beancount",
     "beanquery>=0.2.0",
-    "marimo>=0.22.0",
+    "marimo>=0.22.4",
     "pyzmq>=27.1.0",
 ]

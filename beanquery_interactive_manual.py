@@ -9,7 +9,7 @@
 
 import marimo
 
-__generated_with = "0.22.4"
+__generated_with = "0.23.1"
 app = marimo.App(width="medium", css_file="custom.css")
 
 
@@ -143,22 +143,39 @@ def _():
         return ui
 
 
-    _heading_counters = [0, 0, 0, 0]  # h2, h3, h4, h5
+    class Heading:
+        """A rendered heading with its hierarchical number, used to chain headings in sequence."""
+        def __init__(self, html: mo.Html, number: list):
+            self._html = html
+            self.number = number
 
-    def heading(level: int, text: str, number: bool = True) -> mo.Html:
+        def _mime_(self):
+            return self._html._mime_()
+
+    def heading(level: int, text: str, prev_heading=None, number: bool = True) -> "Heading":
         """Render a colored markdown heading with optional hierarchical numbering.
 
-        Numbering starts from level 2 (level 1 is reserved for title).
+        Numbering is derived from prev_heading.number, enabling correct ordering
+        regardless of marimo cell execution order.
+
+        Args:
+            level: Heading level 1-5. Level 1 is reserved for the document title.
+            text: Heading text.
+            prev_heading: The Heading returned by the immediately preceding heading()
+                          call in document order. Pass None for the first heading.
+            number: If False, no number is generated (e.g. for the document title).
         """
+        num = []
         prefix = ""
-        if number and 2 <= level <= len(_heading_counters) + 1:
-            idx = level - 2  # 0=h2, 1=h3, 2=h4
-            _heading_counters[idx] += 1
-            # Reset child counters
-            for i in range(idx + 1, len(_heading_counters)):
-                _heading_counters[i] = 0
-            prefix = ".".join(str(_heading_counters[i]) for i in range(idx + 1)) + ". "
-        return mo.md(f"<h{level}>{prefix}{text}</h{level}>")
+        if number and 2 <= level <= 5:
+            idx = level - 2  # 0=h2, 1=h3, 2=h4, 3=h5
+            prev_num = prev_heading.number if prev_heading is not None else []
+            parent = prev_num[:idx]
+            own = (prev_num[idx] + 1) if len(prev_num) > idx else 1
+            num = parent + [own]
+            prefix = ".".join(str(n) for n in num) + ". "
+        html = mo.md(f"<h{level}>{prefix}{text}</h{level}>")
+        return Heading(html, num)
 
 
     return heading, ledger_editor, mo, query_editor, query_output
@@ -166,18 +183,16 @@ def _():
 
 @app.cell(hide_code=True)
 def _(heading, title_hd):
-    _=title_hd
-    intro_hd =heading(2, "Introduction to this document", number=True)
+    intro_hd = heading(2, "Introduction to this document", title_hd, number=True)
     intro_hd
     return (intro_hd,)
 
 
 @app.cell
 def _(heading, intro_hd):
-    _=intro_hd
-    purpose_hd =heading(3, "Purpose and scope", number=True)
+    purpose_hd = heading(3, "Purpose and scope", intro_hd, number=True)
     purpose_hd
-    return
+    return (purpose_hd,)
 
 
 @app.cell(hide_code=True)
@@ -198,12 +213,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(heading, intro_hd):
-    # This is a workarount to enforce the sequence of the header executions, as marimo 
-    # does not necessarily execute the cells in the top-to-bottom order, 
-    # and the header numbering relies on the execution order.
-    _=intro_hd
-    how_to_use__man_h =heading(3, "How to use this manual")
+def _(heading, purpose_hd):
+    how_to_use__man_h = heading(3, "How to use this manual", purpose_hd)
     how_to_use__man_h
     return (how_to_use__man_h,)
 
@@ -231,8 +242,7 @@ def _(mo):
 
 @app.cell
 def _(heading, how_to_use__man_h):
-    _ = how_to_use__man_h
-    int_beanquery_hd = heading(2, "Introduction to beanquery", number=True)
+    int_beanquery_hd = heading(2, "Introduction to beanquery", how_to_use__man_h, number=True)
     int_beanquery_hd
     return (int_beanquery_hd,)
 
@@ -258,8 +268,7 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(heading, int_beanquery_hd):
-    _prev = int_beanquery_hd
-    how_to_install_h = heading(2, "How to install beanquery")
+    how_to_install_h = heading(2, "How to install beanquery", int_beanquery_hd)
     how_to_install_h
     return (how_to_install_h,)
 
@@ -276,8 +285,7 @@ def _(mo):
 
 @app.cell
 def _(heading, how_to_install_h):
-    _prev = how_to_install_h
-    how_to_start_h = heading(2, "How to run beanquery CLI")
+    how_to_start_h = heading(2, "How to run beanquery CLI", how_to_install_h)
     how_to_start_h
     return (how_to_start_h,)
 
@@ -357,8 +365,7 @@ def _(mo):
 
 @app.cell
 def _(heading, how_to_start_h):
-    _prev = how_to_start_h
-    how_to_get_help_h = heading(2, "How to get help")
+    how_to_get_help_h = heading(2, "How to get help", how_to_start_h)
     how_to_get_help_h
     return (how_to_get_help_h,)
 
@@ -476,8 +483,7 @@ def _(mo):
 
 @app.cell
 def _(heading, how_to_get_help_h):
-    _= how_to_get_help_h
-    available_tables=heading(2, "Available tables. Introduction", number=  True)
+    available_tables = heading(2, "Available tables. Introduction", how_to_get_help_h, number=True)
     available_tables
     return (available_tables,)
 
@@ -511,8 +517,7 @@ def _(mo):
 
 @app.cell
 def _(available_tables, heading):
-    _=available_tables
-    types_of_queries_hd = heading(2, "Types of queries", number=True)
+    types_of_queries_hd = heading(2, "Types of queries", available_tables, number=True)
     types_of_queries_hd
     return (types_of_queries_hd,)
 
@@ -532,8 +537,7 @@ def _(mo):
 
 @app.cell
 def _(heading, types_of_queries_hd):
-    _ = types_of_queries_hd
-    select_query_hd = heading(2, "SELECT Query", number=True)
+    select_query_hd = heading(2, "SELECT Query", types_of_queries_hd, number=True)
     select_query_hd
     return (select_query_hd,)
 
@@ -732,8 +736,7 @@ def _(query_output, simple_ledger_ui, sql_ui_hash_table_accounts):
 
 @app.cell
 def _(heading, select_query_hd):
-    _=select_query_hd
-    expressions_hd = heading(2, "Expressions", number=True)
+    expressions_hd = heading(2, "Expressions", select_query_hd, number=True)
     expressions_hd
     return (expressions_hd,)
 
@@ -754,8 +757,7 @@ def _(mo):
 
 @app.cell
 def _(expressions_hd, heading):
-    _=expressions_hd
-    operators_hd = heading(3, "Operators", number=True)
+    operators_hd = heading(3, "Operators", expressions_hd, number=True)
     operators_hd
     return (operators_hd,)
 
@@ -829,8 +831,7 @@ def _(operators_ledger_ui, query_output, sql_ui_operators):
 
 @app.cell
 def _(heading, operators_hd):
-    _=operators_hd
-    constants_hd = heading(3, "Constants", number=True)
+    constants_hd = heading(3, "Constants", operators_hd, number=True)
     constants_hd
     return (constants_hd,)
 
@@ -893,8 +894,7 @@ def _(query_output, simple_ledger_constants_ui, sql_ui_constants):
 
 @app.cell
 def _(constants_hd, heading):
-    _=constants_hd
-    columns_functions_hd = heading(3, "Columns and Functions in expressions", number=True)
+    columns_functions_hd = heading(3, "Columns and Functions in expressions", constants_hd, number=True)
     columns_functions_hd
     return
 
@@ -972,10 +972,9 @@ def _(mo):
 
 @app.cell
 def _(expressions_hd, heading):
-    _=expressions_hd
-    more_on_tables = heading(2, "More on tables", number=True)
-    more_on_tables
-    return (more_on_tables,)
+    more_on_tables_hd = heading(2, "More on tables", expressions_hd, number=True)
+    more_on_tables_hd
+    return (more_on_tables_hd,)
 
 
 @app.cell
@@ -987,9 +986,8 @@ def _(mo):
 
 
 @app.cell
-def _(heading, more_on_tables):
-    _=more_on_tables
-    postings_table_hd = heading(3, "The postings table", number=True)
+def _(heading, more_on_tables_hd):
+    postings_table_hd = heading(3, "The postings table", more_on_tables_hd, number=True)
     postings_table_hd
     return (postings_table_hd,)
 
@@ -1004,10 +1002,9 @@ def _(mo):
 
 @app.cell
 def _(heading, postings_table_hd):
-    _=postings_table_hd
-    transaction_columns_in_postings_hd = heading(4, "Transactions columns in the postings table", number=True)
+    transaction_columns_in_postings_hd = heading(4, "Transactions columns in the postings table", postings_table_hd, number=True)
     transaction_columns_in_postings_hd
-    return
+    return (transaction_columns_in_postings_hd,)
 
 
 @app.cell
@@ -1142,11 +1139,10 @@ def _(mo):
 
 
 @app.cell
-def _(heading, more_on_tables):
-    _=more_on_tables
-    hard_coded_joints_postings_transactions = heading(4, "The `entry` column", number=True)
+def _(heading, transaction_columns_in_postings_hd):
+    hard_coded_joints_postings_transactions = heading(4, "The `entry` column", transaction_columns_in_postings_hd, number=True)
     hard_coded_joints_postings_transactions
-    return
+    return (hard_coded_joints_postings_transactions,)
 
 
 @app.cell
@@ -1226,9 +1222,8 @@ def _(ledger_ui_with_meta, query_output, sql_ui_trans_meta):
 
 
 @app.cell
-def _(heading, more_on_tables):
-    _=more_on_tables
-    other_accounts_column_hd = heading(4, "The `other_accounts` column", number=True)
+def _(hard_coded_joints_postings_transactions, heading):
+    other_accounts_column_hd = heading(4, "The `other_accounts` column", hard_coded_joints_postings_transactions, number=True)
     other_accounts_column_hd
     return (other_accounts_column_hd,)
 
@@ -1314,9 +1309,8 @@ def _(other_accounts_ledger_ui, query_output, sql_ui_other_accounts_cash):
 
 @app.cell
 def _(heading, other_accounts_column_hd):
-    _=other_accounts_column_hd
-    balance_column_hd = heading(4, 'The “balance” column', number=True)
-    balance_column_hd 
+    balance_column_hd = heading(4, 'The “balance” column', other_accounts_column_hd, number=True)
+    balance_column_hd
     return
 
 
@@ -1432,16 +1426,14 @@ def _(
 
 @app.cell
 def _(heading, postings_table_hd):
-    _=postings_table_hd
-    transactions_table_hd = heading(3, "Transactions table", number=True)
+    transactions_table_hd = heading(3, "Transactions table", postings_table_hd, number=True)
     transactions_table_hd
-    return
+    return (transactions_table_hd,)
 
 
 @app.cell
-def _(heading, other_accounts_column_hd):
-    _=other_accounts_column_hd
-    id_column_dh = heading(4, "The `id` column", number=True)
+def _(heading, transactions_table_hd):
+    id_column_dh = heading(4, "The `id` column", transactions_table_hd, number=True)
     id_column_dh
     return
 
@@ -1523,11 +1515,10 @@ def _(ledger_id_ui, query_output, sql_ui_id_print):
 
 
 @app.cell
-def _(heading, more_on_tables):
-    _=more_on_tables
-    select_q_conclusions_hd = heading(3, "Practical conclusions on using the SELECT Query", number=True)
+def _(heading, more_on_tables_hd):
+    select_q_conclusions_hd = heading(2, "Practical conclusions on using the SELECT Query", more_on_tables_hd, number=True)
     select_q_conclusions_hd
-    return
+    return (select_q_conclusions_hd,)
 
 
 @app.cell
@@ -1545,9 +1536,8 @@ def _(mo):
 
 
 @app.cell
-def _(heading, int_beanquery_hd):
-    _=int_beanquery_hd
-    statement_operators_hd = heading(3, "Statement operators (OPEN ON, CLOSE ON, CLEAR)", number=True)
+def _(heading, select_q_conclusions_hd):
+    statement_operators_hd = heading(2, "Statement operators (OPEN ON, CLOSE ON, CLEAR)", select_q_conclusions_hd, number=True)
     statement_operators_hd
     return (statement_operators_hd,)
 
@@ -1613,8 +1603,7 @@ def _(ledger_editor):
 
 @app.cell
 def _(heading, statement_operators_hd):
-    _= statement_operators_hd
-    openning_period_hd = heading(4, "Opening a Period (OPEN ON clause)", number=True)
+    openning_period_hd = heading(4, "Opening a Period (OPEN ON clause)", statement_operators_hd, number=True)
     openning_period_hd
     return (openning_period_hd,)
 
@@ -1741,8 +1730,7 @@ def _(mo):
 
 @app.cell
 def _(heading, openning_period_hd):
-    _= openning_period_hd
-    closing_period_hd = heading(4, "Closing a Period (CLOSE ON clause)", number=True)
+    closing_period_hd = heading(4, "Closing a Period (CLOSE ON clause)", openning_period_hd, number=True)
     closing_period_hd
     return (closing_period_hd,)
 
@@ -1800,8 +1788,7 @@ def _(mo):
 
 @app.cell
 def _(closing_period_hd, heading):
-    _= closing_period_hd
-    clearing_period_hd = heading(4, "Clearing Income & Expenses (CLEAR clause)", number=True)
+    clearing_period_hd = heading(4, "Clearing Income & Expenses (CLEAR clause)", closing_period_hd, number=True)
     clearing_period_hd
     return (clearing_period_hd,)
 
@@ -1908,10 +1895,9 @@ def _(mo):
 
 @app.cell
 def _(clearing_period_hd, heading):
-    _= clearing_period_hd
-    open_close_clear_hd = heading(4, "Example Statements", number=True)
+    open_close_clear_hd = heading(4, "Example Statements", clearing_period_hd, number=True)
     open_close_clear_hd
-    return
+    return (open_close_clear_hd,)
 
 
 @app.cell
@@ -2000,9 +1986,8 @@ def _(ledger_ui_open_close, query_output, sql_ui_bal_sheet):
 
 
 @app.cell
-def _(heading, select_query_hd):
-    _ = select_query_hd
-    high_level_shortcuts_hd = heading(2, "High-level shortcuts (JOURNAL, BALANCE, PRINT)", number=True)
+def _(heading, open_close_clear_hd):
+    high_level_shortcuts_hd = heading(2, "High-level shortcuts (JOURNAL, BALANCE, PRINT)", open_close_clear_hd, number=True)
     high_level_shortcuts_hd
     return (high_level_shortcuts_hd,)
 
@@ -2050,8 +2035,7 @@ def _(ledger_editor):
 
 @app.cell
 def _(heading, high_level_shortcuts_hd):
-    _=high_level_shortcuts_hd
-    journal_hd = heading(3, "Selecting Journals (JOURNAL query)", number=True)
+    journal_hd = heading(3, "Selecting Journals (JOURNAL query)", high_level_shortcuts_hd, number=True)
     journal_hd
     return (journal_hd,)
 
@@ -2105,8 +2089,7 @@ def _(ledger_ui_journal, query_output, sql_ui_journal_balance):
 
 @app.cell
 def _(heading, journal_hd):
-    _=journal_hd
-    balances_hd = heading(3, "Selecting Balances (BALANCES query)", number=True)
+    balances_hd = heading(3, "Selecting Balances (BALANCES query)", journal_hd, number=True)
     balances_hd
     return (balances_hd,)
 
@@ -2213,8 +2196,7 @@ def _(ledger_ui_journal, query_output, sql_ui_balances_where_per_account):
 
 @app.cell
 def _(balances_hd, heading):
-    _=balances_hd
-    print_hd = heading(3, "Print (PRINT query)", number=True)
+    print_hd = heading(3, "Print (PRINT query)", balances_hd, number=True)
     print_hd
     return
 
