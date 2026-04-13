@@ -153,7 +153,7 @@ def _():
         def _mime_(self):
             return self._html._mime_()
 
-    def heading(level: int, text: str, prev_heading=None, number: bool = True) -> "Heading":
+    def heading(level: int, text: str, prev_heading: Heading | None = None, number: bool = True) -> Heading:
         """Render a colored markdown heading with optional hierarchical numbering.
 
         Numbering is derived from prev_heading.number, enabling correct ordering
@@ -162,7 +162,8 @@ def _():
         Args:
             level: Heading level 1-5. Level 1 is reserved for the document title.
             text: Heading text.
-            prev_heading: The Heading returned by the immediately preceding heading()
+            prev_heading: The Heading returned by the preceding heading (not necessarily the immediately preceeding heading)
+                          E.g. in the situiation of 1, 1.1, 1.2, 2, the prev_heading for "2" could be either "1" or "1.2" 
                           call in document order. Pass None for the first heading.
             number: If False, no number is generated (e.g. for the document title).
         """
@@ -286,9 +287,9 @@ def _(mo):
 
 @app.cell
 def _(heading, how_to_install_h):
-    how_to_start_h = heading(2, "How to run beanquery CLI", how_to_install_h)
-    how_to_start_h
-    return (how_to_start_h,)
+    how_to_run_hd = heading(2, "How to run beanquery CLI", how_to_install_h)
+    how_to_run_hd
+    return (how_to_run_hd,)
 
 
 @app.cell
@@ -340,16 +341,27 @@ def _(mo):
     ```
 
     All the interactive commands are supported.
+    """)
+    return
 
-    **Shell Variables**
 
+@app.cell
+def _(heading, how_to_run_hd):
+    shell_variables_hd = heading(2, "Shell variables", how_to_run_hd, number=True)
+    shell_variables_hd
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     The interactive shell has a few “set” variables that you can customize to change some of the behavior of the shell. These are like environment variables. Type the `.set` command to see the list of available variables and their current value.
 
     The variables are:
 
     * boxed (boolean): Whether we should draw a box around the output table.
     * expand (boolean): If true, expand columns that render to lists on multiple rows.
-    * format (string): The output format. Currently, only “text” is supported.
+    * format (string): The output format. Supported formats: “text”, "csv".
     * narrow (boolean): Whether the column header names are truncated, underling selected data allows
     * nullvalue: '' ?? what does it do?
     * numberify: (boolean): If set to `true` splits columns that contain monetary types (Amount, Position, Inventory) into separate plain-number columns — one per currency found in that column.
@@ -365,8 +377,8 @@ def _(mo):
 
 
 @app.cell
-def _(heading, how_to_start_h):
-    how_to_get_help_h = heading(2, "How to get help", how_to_start_h)
+def _(heading, how_to_run_hd):
+    how_to_get_help_h = heading(2, "How to get help", how_to_run_hd)
     how_to_get_help_h
     return (how_to_get_help_h,)
 
@@ -1312,7 +1324,7 @@ def _(other_accounts_ledger_ui, query_output, sql_ui_other_accounts_cash):
 def _(heading, other_accounts_column_hd):
     balance_column_hd = heading(4, 'The `balance` column', other_accounts_column_hd, number=True)
     balance_column_hd
-    return
+    return (balance_column_hd,)
 
 
 @app.cell(hide_code=True)
@@ -1426,6 +1438,23 @@ def _(
 
 
 @app.cell
+def _(balance_column_hd, heading):
+    weight_hd = heading(4, "The `weight` column", balance_column_hd, number=True)
+    weight_hd
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    The computed weight used for this posting
+
+    _#TODO: add expamples_
+    """)
+    return
+
+
+@app.cell
 def _(heading, postings_table_hd):
     transactions_table_hd = heading(3, "Transactions table", postings_table_hd, number=True)
     transactions_table_hd
@@ -1517,9 +1546,9 @@ def _(ledger_id_ui, query_output, sql_ui_id_print):
 
 @app.cell
 def _(heading, more_on_tables_hd):
-    select_q_conclusions_hd = heading(2, "Practical conclusions on using the SELECT Query", more_on_tables_hd, number=True)
-    select_q_conclusions_hd
-    return (select_q_conclusions_hd,)
+    practical_conclusions_select_q_hd = heading(2, "Practical conclusions on using the SELECT Query", more_on_tables_hd, number=True)
+    practical_conclusions_select_q_hd
+    return (practical_conclusions_select_q_hd,)
 
 
 @app.cell
@@ -1537,8 +1566,449 @@ def _(mo):
 
 
 @app.cell
-def _(heading, select_q_conclusions_hd):
-    statement_operators_hd = heading(2, "Statement operators (OPEN ON, CLOSE ON, CLEAR)", select_q_conclusions_hd, number=True)
+def _(heading, practical_conclusions_select_q_hd):
+    functions_hd = heading(2, "Functions", practical_conclusions_select_q_hd, number=True)
+    functions_hd
+    return (functions_hd,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    The shell provides a list of simple function that operate on a single data column and return a new value. These functions operate on particular types. The shell implements rudimentary type verification and should be able to warn you on incompatible types.
+
+    List of functions, available to be used in the `SELECT` expression can be obtained using the `.help targets` command. List of functions, available to be used in the expression of the `FROM` and `WHERE` clause can be obtained using the `.help from` and `.help where` respectively. E.g.:
+
+    ```text
+    beanquery> .help targets
+
+
+    The list of comma-separated target expressions may consist of columns,
+    simple functions and aggregate functions. If you use any aggregate
+    function, you must also provide a GROUP-BY clause.
+
+    Columns
+    -------
+    ...
+
+    Functions
+    ---------
+
+    abs(decimal)
+    ...
+
+    Aggregate functions
+    -------------------
+
+    ...
+
+    sum(amount)
+      Calculate the sum of the amount. The result is an Inventory.
+
+    sum(inventory)
+      Calculate the sum of the inventories. The result is an Inventory.
+
+    sum(decimal)
+    sum(int)
+      Calculate the sum of the numerical argument.
+
+    sum(position)
+      Calculate the sum of the position. The result is an Inventory.
+
+    ...
+
+    beanquery>
+    ```
+    """)
+    return
+
+
+@app.cell
+def _(functions_hd, heading):
+    aggregate_functions_and_q_hd = heading(3, "Aggregate functions and Aggregate Queries", functions_hd, number=True)
+    aggregate_functions_and_q_hd
+    return (aggregate_functions_and_q_hd,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    The `SELECT` clause (and only the `SELECT clause`) allows usage of the called **Aggregate functions**, in addition to the ordinary Functions.
+    The **Aggregate functions** operate on more than a single row. These functions aggregate and summarize the multiple values for the data column that they operate on.
+
+    Examples of aggregate functions include:
+    * `COUNT(...)`: Computes the number of postings selected (an integer).
+    * `FIRST(...)`, `LAST(...)`: Returns first or last value seen.
+    * `MIN(...)`, `MAX(...)`: Computes the minimum or maximum value seen.
+    * `SUM(...)`: Sums up the values of each set. This works on amounts, positions, inventories, numbers, etc.
+
+    A usage of at least one of the aggregate function turns a query into the **Aggregate Query**. An **Aggregate query** is a query, which produces a row of results for each group of postings that match the restricts in the `WHERE` clause.  In order to identify the aggregation keys in a **classical SQL** all the non-aggregate columns have to be flagged using the GROUP BY clause:
+
+    Example:
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Assets:Cash USD
+    2023-01-01 open Income:Salary USD
+    2023-01-01 open Expenses:Food USD
+    2023-01-01 open Expenses:Misc USD
+
+    2023-01-01 * "Salary"
+      Income:Salary   -500 USD
+      Assets:Cash      500 USD
+
+    2023-01-02 * "Alice" "Shopping 1"
+      Expenses:Food   10 USD
+      Assets:Cash    -10 USD
+
+    2023-01-03 * "Bob" "Shopping 2"
+      Expenses:Misc   20 USD
+      Assets:Cash    -20 USD
+
+    2023-01-04 * "Alice" "Shopping 3"
+      Expenses:Food   30 USD
+      Assets:Cash    -30 USD
+
+    2023-01-05 * "Bob" "Shopping 4"
+      Expenses:Misc   40 USD
+      Assets:Cash    -40 USD
+
+    2023-01-06 * "Alice" "Shopping 5"
+      Expenses:Misc   50 USD
+      Assets:Cash    -50 USD
+    """
+
+    agg_ledger_ui = ledger_editor(_ledger, label="Ledger for aggregate functions demo")
+    agg_ledger_ui
+    return (agg_ledger_ui,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT 
+        payee, account, sum(position), last(date)
+    WHERE 
+        account ~ "^Expenses"
+    GROUP BY payee, account
+
+    """
+    agg_query_ui = query_editor(_sql, label="Aggregate query example")
+    agg_query_ui
+    return (agg_query_ui,)
+
+
+@app.cell
+def _(agg_ledger_ui, agg_query_ui, query_output):
+    query_output(agg_ledger_ui.value, agg_query_ui.value)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT 
+        payee, account, sum(position), last(date)
+    WHERE 
+        account ~ "^Expenses"
+    GROUP BY 1, 2
+    """
+    agg_query_ui_group_by_position = query_editor(_sql, label="You may also use the positional order of the targets to declare the group key, like this")
+    agg_query_ui_group_by_position
+    return
+
+
+@app.cell
+def _(agg_ledger_ui, agg_query_ui, query_output):
+    query_output(agg_ledger_ui.value, agg_query_ui.value)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT 
+        payee, account as acc, sum(position), last(date)
+    WHERE 
+        account ~ "^Expenses"
+    GROUP BY 1, acc
+    """
+    agg_query_ui_group_by_position_and_name = query_editor(_sql, label="Furthermore, if you name your targets, you can use the explicit target names:")
+    agg_query_ui_group_by_position_and_name
+    return (agg_query_ui_group_by_position_and_name,)
+
+
+@app.cell
+def _(agg_ledger_ui, agg_query_ui_group_by_position_and_name, query_output):
+    query_output(agg_ledger_ui.value, agg_query_ui_group_by_position_and_name.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Unlike the classical SQL, the beanquery engine however is smart enough to understand what are the grouping keys, without them being explicitly specified. So, it is possible to omit the `GROUP BY` clause at all:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT 
+        payee, account, sum(position), last(date)
+    WHERE 
+        account ~ "^Expenses"
+
+    """
+    agg_query_without_groupby_ui = query_editor(_sql, label="Aggregate query example")
+    agg_query_without_groupby_ui
+    return (agg_query_without_groupby_ui,)
+
+
+@app.cell
+def _(agg_ledger_ui, agg_query_without_groupby_ui, query_output):
+    query_output(agg_ledger_ui.value, agg_query_without_groupby_ui.value)
+    return
+
+
+@app.cell
+def _(aggregate_functions_and_q_hd, heading):
+    notable_functions_hd = heading(3, "Notable functions", aggregate_functions_and_q_hd, number=True)
+    notable_functions_hd
+    return (notable_functions_hd,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    This section discusses some of the notable functions, available in beanquery
+    """)
+    return
+
+
+@app.cell
+def _(heading, notable_functions_hd):
+    units_costs_func_hd = heading(4, "UNITS() and COST() functions", notable_functions_hd, number=True)
+    units_costs_func_hd
+    return (units_costs_func_hd,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ```
+    cost(position)
+      Get the cost of a position.
+
+    cost(inventory)
+      Get the cost of an inventory.
+
+
+    units(position)
+      Get the number of units of a position (stripping cost).
+
+    units(inventory)
+      Get the number of units of an inventory (stripping cost).
+    ```
+
+    Let us see results of these functions on a simple ledger
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Assets:Bank
+    2023-01-01 open Income:Salary
+    2023-01-01 open Assets:Investment
+
+    2023-01-01 * "Salary"
+      Income:Salary   -100000 USD
+      Assets:Bank      100000 USD
+
+    2023-01-11 * "Investment 1"
+      Assets:Investment   1  IVV {10 USD} 
+      Assets:Bank        -10 USD
+
+    2023-01-12 * "Investment 2"
+      Assets:Investment   10 IVV {20 USD} 
+      Assets:Bank        -200 USD
+
+    2023-01-13 * "Investment 3. The same cost as Investment 2, but diff date"
+      Assets:Investment   100 IVV {20 USD} 
+      Assets:Bank        -2000 USD
+
+    2023-01-14 * "Investment 4. Not at cost"
+      Assets:Investment   1000  IVV @ 40 USD 
+      Assets:Bank        -40000 USD
+
+    """
+
+    units_costs_ledger_ui = ledger_editor(_ledger, label="UNITS and COST example ledger")
+
+    units_costs_ledger_ui
+    return (units_costs_ledger_ui,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date, account, narration, position, cost(position), units(position)
+    WHERE narration ~ "Investment"
+    """
+    units_costs_query_ui = query_editor(_sql, label="UNITS and COST query")
+    units_costs_query_ui
+    return (units_costs_query_ui,)
+
+
+@app.cell
+def _(query_output, units_costs_ledger_ui, units_costs_query_ui):
+    query_output(units_costs_ledger_ui.value, units_costs_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Note, that the cost function always returns some result, even in case the position is not "held at cost".  In case there is no cost, the cost function returns units.
+
+    Both the `cost()` and `units()` functions can operate on positions as well as on inventories. That means, that one can apply these functions either to columns or to the output of the `sum()` function in the aggregate query. See the `SUM()` function section to see how these functions work on inventory.
+    """)
+    return
+
+
+@app.cell
+def _(heading, units_costs_func_hd):
+    sum_function_hd = heading(4, "The `SUM()` function", units_costs_func_hd, number=True)
+    sum_function_hd
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ```text
+    sum(amount)
+      Calculate the sum of the amount. The result is an Inventory.
+
+    sum(inventory)
+      Calculate the sum of the inventories. The result is an Inventory.
+
+    sum(decimal)
+    sum(int)
+      Calculate the sum of the numerical argument.
+
+    sum(position)
+      Calculate the sum of the position. The result is an Inventory.
+    ```
+
+    Note, that when the `SUM()` is applied to positions, which are held at cots
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql= """\
+    SELECT sum(position), sum(cost(position)), sum(units(position)), units(sum(position)), cost(sum(position))
+    WHERE account = "Assets:Investment"
+    """
+
+    units_costs_agg_query_ui = query_editor(_sql, label="Aggregate query to sum up the total units and costs of the investments")
+    units_costs_agg_query_ui
+
+    return (units_costs_agg_query_ui,)
+
+
+@app.cell
+def _(query_output, units_costs_agg_query_ui, units_costs_ledger_ui):
+    query_output(units_costs_ledger_ui.value, units_costs_agg_query_ui.value)
+    return
+
+
+@app.cell
+def _(functions_hd, heading):
+    controlling_results_hd = heading(2, "Controlling query results", functions_hd, number=True)
+    controlling_results_hd
+    return (controlling_results_hd,)
+
+
+@app.cell
+def _(controlling_results_hd, heading):
+    distinct_hd = heading(3, "DISTINCT", controlling_results_hd, number=True)
+    distinct_hd
+    return (distinct_hd,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    There is a post-filtering phase that supports uniquifying result rows. You can trigger this unique filter with the DISTINCT flag after SELECT, as is common in SQL, e.g.
+
+    _#TODO: add practical examples_
+    """)
+    return
+
+
+@app.cell
+def _(distinct_hd, heading):
+    order_by_hd = heading(3, "ORDER BY", distinct_hd, number=True)
+    order_by_hd
+    return (order_by_hd,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Analogous to the GROUP BY clause is an ORDER BY clause that controls the final ordering of the result rows:
+    ```
+    SELECT …
+    GROUP BY account, payee
+    ORDER BY payee, date;
+    ```
+    The clause is optional. If you do not specify it, the default order of iteration of selected postings is used to output the results (that is, the order of transactions-sorted by date- and then their postings).
+    As in SQL, you may reverse the order of sorting by a DESC suffix (the default is the same as specifying ASC):
+    ```
+    SELECT …
+    GROUP BY account, payee
+    ORDER BY payee, date DESC;
+    ```
+
+    _TODO#: add examples_
+    """)
+    return
+
+
+@app.cell
+def _(heading, order_by_hd):
+    limit_hd = heading(3, "LIMIT", order_by_hd, number=True)
+    limit_hd
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    The beanquery also supports a LIMIT clause to interrupt output row generation:
+
+    `SELECT … LIMIT 100;`
+
+    This would output the first 100 result rows and then stop. While this is a common clause present in the SQL language, in the context of double-entry bookkeeping it is not very useful: we always have relatively small datasets to work from. Nevertheless, it is provided for completeness.
+
+    _TODO#: add examples_
+    """)
+    return
+
+
+@app.cell
+def _(controlling_results_hd, heading):
+    statement_operators_hd = heading(2, "Statement operators (OPEN ON, CLOSE ON, CLEAR)", controlling_results_hd, number=True)
     statement_operators_hd
     return (statement_operators_hd,)
 
