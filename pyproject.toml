@@ -1,0 +1,12 @@
+[project]
+name = "beanquery-interactive-manual"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "beancount",
+    "beanquery>=0.2.0",
+    "marimo>=0.22.4",
+    "pyzmq>=27.1.0",
+]
