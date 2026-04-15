@@ -1,9 +1,10 @@
 # /// script
 # requires-python = ">=3.13"
 # dependencies = [
-#     "beanquery",
 #     "beancount",
-#     "marimo",
+#     "beanquery>=0.2.0",
+#     "marimo>=0.22.4",
+#     "pyzmq>=27.1.0",
 # ]
 # ///
 
@@ -200,16 +201,18 @@ def _(heading, intro_hd):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    This is an interactive manual/tutorial for the [beanquery](https://github.com/beancount/beanquery) - a customizable and extensible lightweight SQL query tool for the [Beancount](https://github.com/beancount/beancount/) ledger data.
+    This is an interactive manual and tutorial for [beanquery](https://github.com/beancount/beanquery) — a customizable, extensible, lightweight SQL query tool for [Beancount](https://github.com/beancount/beancount/) ledger data.
 
-    The goal is for this document to be a follow up of the beancount v2 [Beancount Query Language](https://docs.google.com/document/d/1s0GOZMcrKKCLlP29MD7kHO4L88evrwWdIO0p4EwRBE0/edit?usp=sharing) document.
+    This document is intended as a follow-up to the Beancount v2 [Beancount Query Language](https://docs.google.com/document/d/1s0GOZMcrKKCLlP29MD7kHO4L88evrwWdIO0p4EwRBE0/edit?usp=sharing) document.
 
-    It is created with the following features in mind:
+    It was created with the following goals in mind:
 
-    * to cover latest features of the beanquery
-    * to include a lot of actual examples on actual ledgers
-    * to be self-documenting for the query outputs (query outputs are computed with actual beanquery as a part of the notebook execution)
-    * to be interactive. If it is run as a marimo notebook, then a reader can experiment by changing default ledgers and/or queries to get an updated query outputs.
+    * to cover the latest features of beanquery
+    * to include many real examples using actual ledgers
+    * to be self-documenting: all query outputs are computed by running beanquery as part of the notebook execution
+    * to be interactive: when run as a [marimo](https://marimo.io/) notebook, readers can experiment by changing the default ledgers and/or queries, with outputs updating automatically
+
+    **Current state**: work is ongoing
     """)
     return
 
@@ -224,18 +227,18 @@ def _(heading, purpose_hd):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    The document assumes no prior knowledge of the SQL language and is structured as much as possible in the form of a tutorial, where each chapter builds on the material covered in the previous ones. As a downside, the material is more scattered throughout the document than it would otherwise be if an SQL-familiar reader would be assumed. E.g. the available tables are introduces in one chapter and then some more detailed information about some of the tables is added in several chapters afterwards.
+    This document assumes no prior knowledge of SQL and is structured as much as possible as a tutorial, where each chapter builds on the material covered in the previous ones. As a result, the material is more spread throughout the document than it would be if it were written for an SQL-familiar reader. For example, the available tables are introduced in one chapter, and more detailed information about some of them is added in several later chapters.
 
-    This document is written in the [marimo](https://docs.marimo.io/) notebook. You can read the manual as a normal html document.
-    However the cool feature of this notebook is that if you run it as a marimo notebook, you can interact with the document by changing the default text for both the ledger and the query in all examples. As soon as an input widget loses focus, the query will be re-executed and the output will be updated.
+    This document is written as a [marimo](https://docs.marimo.io/) notebook. You can read it as a normal HTML document.
+    However, the cool feature of this notebook is that if you run it as a marimo notebook, you can interact with the document by changing the default text for both the ledger and the query in all examples. As soon as an input widget loses focus, the query is re-executed and the output is updated.
 
-    Both in the HTML format as well as in the marimo notebook format the clickable table of content is available if one hovers the mouse near the right browser vertical scroll bar.
+    Both in HTML format and in the marimo notebook format, a clickable table of contents is available when hovering near the right side of the browser's vertical scroll bar.
 
-    Note that throughout the document some unresolved questions the author had about the beanquery functionality are marked with double question marks.
+    Note that throughout the document, unresolved questions the author had about beanquery functionality are marked with double question marks.
 
     E.g.: ?? Why do we need this.
 
-    As well as some TODOs, marked with #TODO.
+    There are also some TODOs, marked with #TODO.
 
     E.g.: _#TODO: we need to investigate this_
     """)
@@ -252,18 +255,18 @@ def _(heading, how_to_use__man_h):
 @app.cell
 def _(mo):
     mo.md(r"""
-    Beanquery parses a Beancount ledger and creates an in-memory database represented in a form of several tables. Beanquery then exposes a command-line tool that acts like a client to that in-memory database in which you can type queries in a variant of SQL.
+    Beanquery parses a Beancount ledger and creates an in-memory database represented as several tables. Beanquery then exposes a command-line tool that acts as a client to that in-memory database, where you can type queries in a variant of SQL.
 
-    Beanquery started as an experiment in beancount v2, but in v3 (when **bean-report** and **bean-web** have been discontinued) became practically the only tool to query information out of beancount ledger. Thus one can say, that in v3 beancount has moved towards the [Self-service business intelligence](https://www.techtarget.com/searchbusinessanalytics/definition/self-service-business-intelligence-BI) model instead of providing off the shelf ready to use reports.
+    Beanquery started as an experiment in Beancount v2, but in v3 (when **bean-report** and **bean-web** were discontinued) it became practically the only tool for querying information from a Beancount ledger. Thus, one can say that in v3 Beancount has moved toward the [Self-service business intelligence](https://www.techtarget.com/searchbusinessanalytics/definition/self-service-business-intelligence-BI) model, instead of providing off-the-shelf ready-to-use reports.
 
-    So one might ask: Why create another SQL client? Why not output the data to an SQLite database and allow the user to use that SQL client? Apparently this experiment was conducted by creating the [bean-sql](https://github.com/beancount/beancount/blob/v2/beancount/scripts/sql.py). It appears, that writing queries was painful and carrying out operations on lots that are held at cost was difficult.
+    So one might ask: why create another SQL client? Why not output the data to an SQLite database and let the user use any SQL client? Apparently this experiment was conducted by creating [bean-sql](https://github.com/beancount/beancount/blob/v2/beancount/scripts/sql.py). It turned out that writing queries was painful and carrying out operations on lots held at cost was difficult.
 
     Therefore beanquery has some extras that are essential for querying a Beancount ledger. These extras include (but are not necessarily limited to) the following:
     * The client supports the semantics of inventory booking implemented in Beancount. It also supports aggregation functions on inventory objects and rendering functions (e.g., COST() to render the cost of an inventory instead of its contents).
-    * The client supports some functions, which run on postings, but in a background access other tables (e.g. CONVERT() function, which formally operates on the amount, position or inventory, but in a background uses the prices table as well).
-    * It allows filtering at two levels simultaneously: you can filter whole transactions, which has the benefit of respecting the accounting equation, and then, usually for presentation purposes, you can also filter at the postings level.
-    * Objects in one table already have a reference to related objects in another table. E.g. records in the postings table have a reference to the related object from the transactions table. So one can say that these tables have already been pre-joined (even though technically this is not correct).
-    * Transactions can be summarized in a manner useful to produce balance sheets and income statements. For example, our SQL variant explicitly supports a “close” operation with an effect similar to closing the year, which inserts transactions to clear income statement accounts to equity and removes past history.
+    * The client supports some functions that run on postings but in the background also access other tables (e.g. the CONVERT() function, which formally operates on amounts, positions, or inventories, but in the background also uses the prices table).
+    * It allows filtering at two levels simultaneously: you can filter whole transactions, which has the benefit of respecting the accounting equation, and then, usually for presentation purposes, you can also filter at the posting level.
+    * Objects in one table already have references to related objects in another table. For example, records in the postings table have a reference to their related transaction object. So one can say that these tables have already been pre-joined (even though technically this is not entirely correct).
+    * Transactions can be summarized in a manner useful for producing balance sheets and income statements. For example, our SQL variant explicitly supports a “close” operation with an effect similar to year-end closing, which inserts transactions to clear income statement accounts to equity and removes past history.
     """)
     return
 
@@ -301,7 +304,7 @@ def _(mo):
     bean-query [OPTIONS] FILENAME [QUERY]...
     ```
 
-    This launches the query tool in interactive mode, where you can enter multiple commands on the dataset loaded in memory. The beanquery parses the input file, spits out a few basic statistics about your ledger, and provides a command prompt for you to enter query commands.
+    This launches the query tool in interactive mode, where you can enter multiple commands on the dataset loaded in memory. Beanquery parses the input file, prints a few basic statistics about your ledger, and provides a command prompt for you to enter query commands.
 
     e.g.:
 
@@ -312,7 +315,7 @@ def _(mo):
     beanquery>
     ```
 
-    If any errors in your ledger are incurred, they are printed before the prompt.
+    If your ledger contains any errors, they are printed before the prompt.
 
     E.g.:
 
@@ -362,14 +365,14 @@ def _(mo):
     * boxed (boolean): Whether we should draw a box around the output table.
     * expand (boolean): If true, expand columns that render to lists on multiple rows.
     * format (string): The output format. Supported formats: “text”, "csv".
-    * narrow (boolean): Whether the column header names are truncated, underling selected data allows
+    * narrow (boolean): Whether the column header names are truncated to fit within the display width.
     * nullvalue: '' ?? what does it do?
     * numberify: (boolean): If set to `true` splits columns that contain monetary types (Amount, Position, Inventory) into separate plain-number columns — one per currency found in that column.
     * pager (string): The name of the pager program to pipe multi-page output to when the output is larger than the screen. The initial value is copied from the PAGER environment variable.
     * spaced (boolean): Whether to insert an empty line between every result row. This is only relevant because postings with multiple lots may require multiple lines to be rendered, and inserting an empty line helps delineate those as separate.
     * unicode: (boolean): ?? what does it do?
 
-    To change the invironmental variable from the default one type `.set <variable-name> <new-value>`. E.g.:
+    To change a variable from its default value, type `.set <variable-name> <new-value>`. E.g.:
 
     `.set numberify true`
     """)
@@ -386,7 +389,7 @@ def _(heading, how_to_run_hd):
 @app.cell
 def _(mo):
     mo.md(r"""
-    To get a help from the built in system, type `.help` when in the beanquery client
+    To get help from the built-in system, type `.help` when in the beanquery client
 
     ```shell
     beanquery> .help
@@ -418,7 +421,7 @@ def _(mo):
     ```
 
 
-    To get a list of the tables, available for beancount type `.tables`
+    To get the list of tables available in beanquery, type `.tables`
 
     ```shell
     beanquery> .tables
@@ -435,9 +438,9 @@ def _(mo):
     beanquery>
     ```
 
-    To see list of columns, available in every table type `.describe <table name>`
+    To see the list of columns available in a table, type `.describe <table name>`
 
-    e.g. to see list of columns in the **postings** table type
+    For example, to see the columns in the **postings** table, type
 
     ```shell
     beanquery> .describe postings
@@ -521,9 +524,9 @@ def _(mo):
     beanquery>
     ```
 
-    List of fields in every table can be obtained using the `.describe <table_name>` command
+    The list of fields in every table can be obtained using the `.describe <table_name>` command.
 
-    Note: for the postings table the more complete list of columns can be obtained used the `.help targets` command.
+    Note: for the postings table, a more complete list of columns can be obtained using the `.help targets` command.
     """)
     return
 
@@ -538,7 +541,7 @@ def _(available_tables, heading):
 @app.cell
 def _(mo):
     mo.md(r"""
-    Beanquery supports the following type of queries, further discussed in this document
+    Beanquery supports the following types of queries, further discussed in this document:
 
     * SELECT
     * BALANCES
@@ -558,11 +561,11 @@ def _(heading, types_of_queries_hd):
 @app.cell
 def _(mo):
     mo.md(r"""
-    The beanquery SELECT query loosely follows the standard SQL query with some deviations, which will be discussed throughout this manual
+    The beanquery SELECT query loosely follows standard SQL syntax, with some deviations that will be discussed throughout this manual.
 
-    It has to be noted, that originally **beanquery** was designed to be used to extract information on postings table only. In this situation the **FROM** part of the SQL query was "hijacked" to be used for transaction-level filtering and **WHERE** was used for posting-level filtering, which introduced so-called  two-level filtering syntax
+    It should be noted that originally **beanquery** was designed to extract information from the postings table only. In this situation the **FROM** part of the SQL query was "hijacked" for transaction-level filtering and **WHERE** was used for posting-level filtering, which introduced a so-called two-level filtering syntax:
 
-    So, the SELECT query structure looked like this (written in the informal EBNF language):
+    The SELECT query structure looked like this (written in the informal EBNF language):
 
     ```text
     SELECT [DISTINCT] [<targets>|*]
@@ -611,7 +614,7 @@ def _(mo):
 
     ///
 
-    Later on, in beancount v3, when beanquery was moved to be a standalone tool, it was extended to query more tables (see above). In this situation the FROM part was needed again to select a table, so a new form of the SELECT query was introduced:
+    Later, in Beancount v3, when beanquery was moved to a standalone tool, it was extended to query more tables (see above). In this situation the FROM part was needed again to select a table, so a new form of the SELECT query was introduced:
 
     ```text
     SELECT [DISTINCT] [<targets>|*]
@@ -625,14 +628,14 @@ def _(mo):
 
     Note that:
     * The **#table** form is activated by adding the # symbol in front of the table name
-    * The **#table** form allows querying tables other than the postings table, but when it is used to query the postings table (which is possible), it lacks some functionality available in the traditional form, namely the `[OPEN ON <date>] [CLOSE [ON <date>]] [CLEAR]` part. (This may actually be a [bug](https://github.com/beancount/beanquery/issues/274), rather than a feature).
+    * The **#table** form allows querying tables other than the postings table, but when used to query the postings table (which is possible), it lacks some functionality available in the traditional form, namely the `[OPEN ON <date>] [CLOSE [ON <date>]] [CLEAR]` part. (This may actually be a [bug](https://github.com/beancount/beanquery/issues/274), rather than a feature.)
 
-    So, let us emphasize:
-    * In the traditional BQL the FROM clause is used to describe the posting-level filter, not to describe the source of the data
-    * In the **#table** syntax the table name has to be preceded by the # symbol
-    * In the BQL using a wildcard as the target list (“*”) selects a good default list of columns, whilst the normal SQL the * is used to describe the complete set of columns, available in the table
+    So, to summarize:
+    * In the traditional BQL, the FROM clause is used to describe the posting-level filter, not to identify the data source
+    * In the **#table** syntax, the table name must be preceded by the # symbol
+    * In BQL, using a wildcard as the target list (“*”) selects a sensible default set of columns, whereas in standard SQL, * selects the complete set of columns available in the table
 
-    At the moment beanquery supports both query types. Let us explore this on a simple ledger
+    Currently beanquery supports both query types. Let us explore this with a simple ledger.
     """)
     return
 
@@ -2891,6 +2894,14 @@ def _(mo):
 def _(heading, queries_for_typical_situations_hd):
     P_and_l_mult_commodities_hd = heading(3, "P&L like report in multi-commodities ledger", queries_for_typical_situations_hd, number=True)
     P_and_l_mult_commodities_hd
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    _#TODO: add examples_
+    """)
     return
 
 
