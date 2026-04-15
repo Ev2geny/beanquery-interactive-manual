@@ -18,7 +18,7 @@ Comments, feedback and PRs are more than welcome!
 
 ### As a static HTML file
 
-As a static HTML file the manual can be read at the [GitHub Pages](https://ev2geny.github.io/beanquery-interactive-manual/)
+As a static HTML file the manual can be read at the **[GitHub Pages](https://ev2geny.github.io/beanquery-interactive-manual/)**
 
 ### To interact with the document, whilst reading
 
