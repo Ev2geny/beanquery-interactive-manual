@@ -1816,7 +1816,9 @@ def _(mo):
       Get the number of units of an inventory (stripping cost).
     ```
 
-    Let us see results of these functions on a simple ledger
+    Let us see results of these functions on a simple ledger.
+
+    Note: for illustrative purposes on the right sit the same ledger is printed using the PRINT query command to show the full internal representation of the lot cost (with the cost date and the cost label)
     """)
     return
 
@@ -1832,35 +1834,53 @@ def _(ledger_editor):
       Income:Salary   -100000 USD
       Assets:Bank      100000 USD
 
-    2023-01-11 * "Investment 1"
+    2023-01-11 * "Invest in IVV 1"
       Assets:Investment   1  IVV {10 USD} 
       Assets:Bank        -10 USD
 
-    2023-01-12 * "Investment 2"
+    2023-01-12 * "Invest in IVV 2a"
       Assets:Investment   10 IVV {20 USD} 
       Assets:Bank        -200 USD
 
-    2023-01-13 * "Investment 3. The same cost as Investment 2, but diff date"
+    2023-01-12 * "Invest in IVV 2b. The same cost as 2a"
+      Assets:Investment   20 IVV {20 USD} 
+      Assets:Bank        -400 USD
+
+    2023-01-12 * "Invest in IVV 2c. The same cost as 2a, but with label"
+      Assets:Investment   40 IVV {20 USD, "lot-label"} 
+      Assets:Bank        -800 USD
+
+    2023-01-13 * "Invest in IVV 3. The same cost as 2a, but different date"
       Assets:Investment   100 IVV {20 USD} 
       Assets:Bank        -2000 USD
 
-    2023-01-14 * "Investment 4. Not at cost"
+    2023-01-14 * "Invest in IVV 4. Not at cost with USD"
       Assets:Investment   1000  IVV @ 40 USD 
       Assets:Bank        -40000 USD
+
+    2023-01-15 * "Invest in IPP. Not at cost"
+      Assets:Investment   10 IPP @ 4 USD
+      Assets:Bank        -40 USD
 
     """
 
     units_costs_ledger_ui = ledger_editor(_ledger, label="UNITS and COST example ledger")
-
-    units_costs_ledger_ui
     return (units_costs_ledger_ui,)
+
+
+@app.cell
+def _(mo, query_output, units_costs_ledger_ui):
+    # units_costs_ledger_ui
+    mo.hstack([units_costs_ledger_ui,
+              query_output(units_costs_ledger_ui.value, "PRINT")])
+    return
 
 
 @app.cell
 def _(query_editor):
     _sql = """\
-    SELECT date, account, narration, position, cost(position), units(position)
-    WHERE narration ~ "Investment"
+    SELECT date, narration, account, position, cost(position), units(position)
+    WHERE narration ~ "Invest"
     """
     units_costs_query_ui = query_editor(_sql, label="UNITS and COST query")
     units_costs_query_ui
@@ -1876,7 +1896,10 @@ def _(query_output, units_costs_ledger_ui, units_costs_query_ui):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Note, that the cost function always returns some result, even in case the position is not "held at cost".  In case there is no cost, the cost function returns units.
+    Observe that:
+
+    * the `cost()` function always returns some result, even in case the position is not "held at cost".  In case there is no cost, the cost function returns units.
+    * the `cost()` function only reruns a cost amount (decimal number and commodity), without the cost date and label
 
     Both the `cost()` and `units()` functions can operate on positions as well as on inventories. That means, that one can apply these functions either to columns or to the output of the `sum()` function in the aggregate query. See the `SUM()` function section to see how these functions work on inventory.
     """)
@@ -1908,7 +1931,7 @@ def _(mo):
       Calculate the sum of the position. The result is an Inventory.
     ```
 
-    Note, that when the `SUM()` is applied to positions, which are held at cots
+    Let us apply the `sum()` function to the investment account of same ledger, as was used to demonstrate the `cost()` and `units()` function.
     """)
     return
 
@@ -1916,19 +1939,40 @@ def _(mo):
 @app.cell
 def _(query_editor):
     _sql= """\
-    SELECT sum(position), sum(cost(position)), sum(units(position)), units(sum(position)), cost(sum(position))
+    SELECT sum(position)
     WHERE account = "Assets:Investment"
     """
 
-    units_costs_agg_query_ui = query_editor(_sql, label="Aggregate query to sum up the total units and costs of the investments")
+    units_costs_agg_query_ui = query_editor(_sql, label="Aggregate query to sum positions")
     units_costs_agg_query_ui
-
     return (units_costs_agg_query_ui,)
 
 
 @app.cell
 def _(query_output, units_costs_agg_query_ui, units_costs_ledger_ui):
     query_output(units_costs_ledger_ui.value, units_costs_agg_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Observe that:
+
+    * the sum of positions is an inventory<br>
+      note, that the way resulting inventory (the sum of positions) is displayed is a bit confusing, as the cost date cost and label are not displayed.
+      The more correct representation would be (see [this](https://groups.google.com/g/beancount/c/jdNCyhyq3Ug) discussion):
+
+    ```text
+                                            sum(position)
+    ------------------------------------------------------------------------------------------------------------------------------------------------------
+    10 IPP   1000 IVV   100 IVV {20 USD, 2023-01-13}   40 IVV {20 USD, 2023-01-12, "lot-label"}   30 IVV {20 USD, 2023-01-12}   1 IVV {10 USD, 2023-01-11}
+    ```
+
+    * the `sum()` function joins different lots together, following the rules, which beancount uses to build inventories (see more in the document [How Inventories Work](https://docs.google.com/document/d/11a9bIoNuxpSOth3fmfuIFzlZtpTJbvw-bPaQCnezQJs)):
+       * different commodities are not summed together (`10 IPP` and `1000 IVV` are not added together).
+       * even when commodities are the same, lots are added together only when all elements of the cost are also the same: the same commodity, the same date, the same label (if available). E.g. in the above example only the following 2 lots are added together:<br> `10 IVV {20 USD, 2023-01-12} + 20 IVV {20 USD, 2023-01-12} = 30 IVV {20 USD, 2023-01-12}`
+    """)
     return
 
 
