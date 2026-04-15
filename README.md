@@ -12,7 +12,7 @@ It was created with the following goals in mind:
 * to be interactive: when run as a [marimo](https://marimo.io/) notebook, readers can experiment by changing the default ledgers and/or queries, with outputs updating automatically
 
 **Current state**: work is ongoing. 
-Comments, feedback and PRs are more then welcome!
+Comments, feedback and PRs are more than welcome!
 
 ## How to open the manual
 
