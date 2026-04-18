@@ -2907,7 +2907,7 @@ def _(mo):
 def _(heading, queries_for_typical_situations_hd):
     net_worth_multy_commodity_hd = heading(3, "Net Worth and P&L-like reports in multi-commodities ledger", queries_for_typical_situations_hd, number=True)
     net_worth_multy_commodity_hd
-    return
+    return (net_worth_multy_commodity_hd,)
 
 
 @app.cell(hide_code=True)
@@ -3077,6 +3077,49 @@ def _(mo):
 
     This is expected and is happening, because the value of TUG was constantly dropping throughout the year against USD.
     To be able to do the Net Worth reconciliation in the reporting currency (USD in this case) one has to take into account unrealized gains / losses due exchange rate changes (e.g. using the [sing_curr_conv](https://github.com/Ev2geny/evbeantools/blob/main/docs/sing_curr_conv.md) tool).
+    """)
+    return
+
+
+@app.cell
+def _(heading, net_worth_multy_commodity_hd):
+    simple_tx_journal_hd = heading(3, "Simple journal ledger of expense transactions", net_worth_multy_commodity_hd, number=True)
+    simple_tx_journal_hd
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    To get a simple journal of expense postings within a particular date range, one can execute the following:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """
+    SELECT
+        date, flag, description, position, account, other_accounts
+    FROM
+        account~'Expenses:'
+    WHERE
+        date >= 2026-01-01
+        AND date < 2026-04-01
+    """
+    sql_ui_simple_journal_ledger_example = query_editor(_sql, "Expense postings in 2026 up to March 31")
+    sql_ui_simple_journal_ledger_example
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    A couple of things to note:
+
+    * The `description` field conveniently combines the `payee` and `narration` fields, split by a space-padded pipe ' | '
+    * `other_accounts` gives the accounts from the other postings on the parent transaction, similarly split by ' | '
+        * In this particular example, the other accounts would typically be the payment methods used
     """)
     return
 
