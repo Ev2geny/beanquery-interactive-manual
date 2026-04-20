@@ -212,4 +212,5 @@ references/
 
 .idea/
 .vscode/
+uv.lock
 tmp/
