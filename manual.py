@@ -2239,8 +2239,64 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    _#TODO: add some info_
+    The `ROOT(account_name: str, n: int =1)` function returns the 1st **n** parts from the left of the account name. The default value of the **n** argument is 1.
+
+    E.g. `root("Expenses:Shopping:Misc", 2)` returns `Expenses:Shopping`
+
+    This is very useful to be used together with an aggregate function to consolidate positions together on a higher level of accounts hierarchy.
+
+    E.g.: in the below example we use this function to show P&L -like information, where we show total Income and total Expenses without breaking these down further.
     """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Assets:Bank
+    2023-01-01 open Income:Salary
+    2023-01-01 open Income:SideJob
+    2023-01-01 open Expenses:Food
+    2023-01-01 open Expenses:Misc
+
+    2023-01-01 * "Salary"
+      Income:Salary   -1000 USD
+      Assets:Bank      1000 USD
+
+    2023-01-02 * "Expenses 1"
+      Expenses:Food   100 USD
+      Assets:Bank    -100 USD
+
+    2023-01-03 * "Side job"
+      Income:SideJob   -200 USD
+      Assets:Bank      200 USD
+
+    2023-01-03 * "Expenses 2"
+      Expenses:Misc   50 USD
+      Assets:Bank    -50 USD
+    """
+
+    ledger_root_func_ui = ledger_editor(_ledger, label="Ledger for ROOT() function demo")
+    ledger_root_func_ui
+    return (ledger_root_func_ui,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT 
+        root(account,1) as acc_shortened,
+        sum(position)
+    WHERE account ~ "^Expenses|Income"
+    """
+    root_func_query_ui = query_editor(_sql, label="Using ROOT() function to calculate square")
+    root_func_query_ui
+    return (root_func_query_ui,)
+
+
+@app.cell
+def _(ledger_root_func_ui, query_output, root_func_query_ui):
+    query_output(ledger_root_func_ui.value, root_func_query_ui.value)
     return
 
 
@@ -3041,7 +3097,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 16 Usage of beanquery with Data Frame
+    ## 16 Usage of beanquery with Data Frames
     """)
     return
 
@@ -3069,11 +3125,11 @@ def _(mo):
 
     _#TODO: add information_
 
-    ### No PIVOT functionality
+    ### 17.1 No PIVOT functionality
 
     * Use dataframes
 
-    ### No table joining
+    ### 17.2 No table joining
 
     * Use built in functions
     * Use data frames
