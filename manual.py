@@ -1465,7 +1465,7 @@ def _(mo):
     A special column exists that identifies each transaction uniquely: “id”. It is a unique hash automatically computed from the transaction and should be stable between runs.
     This hash is derived from the contents of the transaction object itself (if you change something about the transaction, e.g. you edit the narration, the id will change).
 
-    Note: even though the `id` field logically belongs to the transaction, it is not available in the `transactions` table. The only way to find it is to look in postings via traditional query.
+    Note: even though the `id` field logically belongs to the transaction, it is not available in the `transactions` table (?? Is this a bug?). The only way to find it is to look in postings via traditional query.
     """)
     return
 
@@ -1473,21 +1473,20 @@ def _(mo):
 @app.cell
 def _(ledger_editor):
     _ledger = """\
-    2023-01-01 open Income:Salary
     2023-01-01 open Assets:Cash 
     2023-01-01 open Expenses:Food 
 
-    2023-01-01 * "Salary"
-      Income:Salary   -100 USD
-      Assets:Cash      100 USD
-
-    2023-01-02 * "Shopping 1"
+    2023-01-02 * "Hamburger Place"
       Expenses:Food   10 USD
-      Assets:Cash    -10 USD
+      Assets:Cash
 
-    2023-01-02 * "Shopping 2"
+    2023-01-02 * "Italian Place"
       Expenses:Food   20 USD
-      Assets:Cash    -20 USD
+      Assets:Cash
+
+    2023-01-05 * "Fancy Anniversary Dinner" "paid for entire extended family for parent's 50th wedding anniversary"
+      Expenses:Food 2,000 USD
+      Assets:Cash
       """
 
     ledger_id_ui = ledger_editor(_ledger, label="Simple ledger for to test id column")
@@ -1522,7 +1521,7 @@ def _(mo):
 @app.cell
 def _(query_editor):
     _sql = """\
-    PRINT from id = '5801fa0babefb50972631ce070888875'
+    PRINT from id = '6b634369dafa012b83e63be8be0c18bb'
     """
     sql_ui_id_print = query_editor(_sql, label="PRINT specific entry by id")
     sql_ui_id_print
@@ -1532,6 +1531,31 @@ def _(query_editor):
 @app.cell
 def _(ledger_id_ui, query_output, sql_ui_id_print):
     query_output(ledger_id_ui.value, sql_ui_id_print.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Another reported use of the `id` field is to filter specific entries during queries, especially outlier entries that may throw off aggregate functions (aggregate functions discussed later). While this can also often be accomplished by having the foresight to put those entries in specific categories that can then be filtered on, it is occasionally inconvenient to do so.
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT sum(position) WHERE account = 'Expenses:Food' AND id != '6b634369dafa012b83e63be8be0c18bb'
+    """
+
+    sql_exclude_id = query_editor(_sql, label="Exclude specific entry by id from aggregate function")
+    sql_exclude_id
+    return (sql_exclude_id,)
+
+
+@app.cell
+def _(ledger_id_ui, query_output, sql_exclude_id):
+    query_output(ledger_id_ui.value, sql_exclude_id.value)
     return
 
 
@@ -3158,7 +3182,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### Simple journal ledger of expense transactions
+    ### 18.1 Simple journal ledger of expense transactions
     """)
     return
 
@@ -3248,7 +3272,7 @@ def _(
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### 18.1 Net Worth and P&L-like reports in multi-commodities ledger
+    ### 18.2 Net Worth and P&L-like reports in multi-commodities ledger
     """)
     return
 
