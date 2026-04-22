@@ -1,6 +1,6 @@
 [project]
 name = "beanquery-interactive-manual"
-version = "0.1.3.dev0"
+version = "0.1.3"
 description = "An interactive manual and tutorial for beanquery — a customizable, extensible, lightweight SQL-like query tool for Beancount ledger data"
 readme = "README.md"
 requires-python = ">=3.13"
