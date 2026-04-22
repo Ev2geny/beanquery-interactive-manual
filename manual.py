@@ -3158,6 +3158,96 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### Simple journal ledger of expense transactions
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    To get a simple journal of expense postings within a particular date range, one can execute the following:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """
+    SELECT
+        date, flag, description, position, account, other_accounts
+    FROM
+        account~'Expenses:'
+    WHERE
+        date >= 2026-01-01
+        AND date < 2026-04-01
+    """
+    sql_ui_simple_journal_ledger_example = query_editor(_sql, "Expense postings in 2026 up to March 31")
+    sql_ui_simple_journal_ledger_example
+    return (sql_ui_simple_journal_ledger_example,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    A couple of things to note:
+
+    * The `description` field conveniently combines the `payee` and `narration` fields, split by a space-padded pipe ' | '
+    * `other_accounts` gives the accounts from the other postings on the parent transaction, similarly split by ' | '
+        * In this particular example, the other accounts would typically be the payment methods used
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Here is an example of the usage of this query on a ledger with a few ordinary expenses:
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2024-01-01 open Liabilities:Some-Card                 USD
+    2024-01-01 open Expenses:Car:Repair-and-Maintenance   USD
+    2024-01-01 open Liabilities:Some-Other-Card           USD
+    2024-01-01 open Expenses:Medical-Expenses             USD
+    2024-01-01 open Assets:Checking-Account               USD
+    2024-01-01 open Expenses:Clothes-etc                  USD
+
+    2026-03-10 * "Advance Auto Parts" "Synthetic oil and brake fluid"
+        Liabilities:Some-Card                -20.84 USD
+        Expenses:Car:Repair-and-Maintenance   20.84 USD
+
+    2026-02-15 * "CVS" "Prescription pickup"
+        Liabilities:Some-Other-Card   -15.00 USD
+        Expenses:Medical-Expenses      15.00 USD
+
+    2026-01-15 * "Target" "Earrings"
+        Assets:Checking-Account -78 USD  ; debit card
+        Expenses:Clothes-etc
+    """
+
+    ledger_ui_simple_txn_list = ledger_editor(_ledger, label='Simple expense transactions')
+    ledger_ui_simple_txn_list
+    return (ledger_ui_simple_txn_list,)
+
+
+@app.cell
+def _(
+    ledger_ui_simple_txn_list,
+    query_output,
+    sql_ui_simple_journal_ledger_example,
+):
+    query_output(ledger_ui_simple_txn_list.value, sql_ui_simple_journal_ledger_example.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ### 18.1 Net Worth and P&L-like reports in multi-commodities ledger
     """)
     return
@@ -3331,96 +3421,6 @@ def _(mo):
     This is expected and is happening, because the value of TUG was constantly dropping throughout the year against USD.
     To be able to do the Net Worth reconciliation in the reporting currency (USD in this case) one has to take into account unrealized gains / losses due exchange rate changes (e.g. using the [sing_curr_conv](https://github.com/Ev2geny/evbeantools/blob/main/docs/sing_curr_conv.md) tool).
     """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    ### Simple journal ledger of expense transactions
-    """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    To get a simple journal of expense postings within a particular date range, one can execute the following:
-    """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(query_editor):
-    _sql = """
-    SELECT
-        date, flag, description, position, account, other_accounts
-    FROM
-        account~'Expenses:'
-    WHERE
-        date >= 2026-01-01
-        AND date < 2026-04-01
-    """
-    sql_ui_simple_journal_ledger_example = query_editor(_sql, "Expense postings in 2026 up to March 31")
-    sql_ui_simple_journal_ledger_example
-    return (sql_ui_simple_journal_ledger_example,)
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    A couple of things to note:
-
-    * The `description` field conveniently combines the `payee` and `narration` fields, split by a space-padded pipe ' | '
-    * `other_accounts` gives the accounts from the other postings on the parent transaction, similarly split by ' | '
-        * In this particular example, the other accounts would typically be the payment methods used
-    """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    Here is an example of the usage of this query on a ledger with a few ordinary expenses:
-    """)
-    return
-
-
-@app.cell
-def _(ledger_editor):
-    _ledger = """\
-    2024-01-01 open Liabilities:Some-Card                 USD
-    2024-01-01 open Expenses:Car:Repair-and-Maintenance   USD
-    2024-01-01 open Liabilities:Some-Other-Card           USD
-    2024-01-01 open Expenses:Medical-Expenses             USD
-    2024-01-01 open Assets:Checking-Account               USD
-    2024-01-01 open Expenses:Clothes-etc                  USD
-
-    2026-03-10 * "Advance Auto Parts" "Synthetic oil and brake fluid"
-        Liabilities:Some-Card                -20.84 USD
-        Expenses:Car:Repair-and-Maintenance   20.84 USD
-
-    2026-02-15 * "CVS" "Prescription pickup"
-        Liabilities:Some-Other-Card   -15.00 USD
-        Expenses:Medical-Expenses      15.00 USD
-
-    2026-01-15 * "Target" "Earrings"
-        Assets:Checking-Account -78 USD  ; debit card
-        Expenses:Clothes-etc
-    """
-
-    ledger_ui_simple_txn_list = ledger_editor(_ledger, label='Simple expense transactions')
-    ledger_ui_simple_txn_list
-    return (ledger_ui_simple_txn_list,)
-
-
-@app.cell
-def _(
-    ledger_ui_simple_txn_list,
-    query_output,
-    sql_ui_simple_journal_ledger_example,
-):
-    query_output(ledger_ui_simple_txn_list.value, sql_ui_simple_journal_ledger_example.value)
     return
 
 
