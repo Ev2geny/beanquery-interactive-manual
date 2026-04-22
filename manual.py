@@ -1,8 +1,8 @@
 # /// script
 # requires-python = ">=3.13"
 # dependencies = [
-#     "beancount",
-#     "beanquery>=0.2.0",
+#     "beancount==3.2.0",
+#     "beanquery==0.2.0",
 #     "marimo>=0.22.4",
 #     "pyzmq>=27.1.0",
 # ]
@@ -1532,6 +1532,55 @@ def _(query_editor):
 @app.cell
 def _(ledger_id_ui, query_output, sql_ui_id_print):
     query_output(ledger_id_ui.value, sql_ui_id_print.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    The `id` field can also be used to filter specific entries during queries, especially outlier entries that may throw off aggregate functions. While this can also often be accomplished by having the foresight to put those entries in specific categories that can then be filtered on, it is occasionally inconvenient to do so. Consider the following set of entries:
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Assets:Cash 
+    2023-01-01 open Expenses:Food 
+
+    2023-01-02 * "Hamburger Place"
+      Expenses:Food   10 USD
+      Assets:Cash
+
+    2023-01-02 * "Italian Place"
+      Expenses:Food   20 USD
+      Assets:Cash
+
+    2023-01-05 * "Fancy Anniversary Dinner" "paid for entire extended family for parent's 50th wedding anniversary"
+      Expenses:Food 2,000 USD
+      Assets:Cash
+      """
+
+    ledger_exclude_id = ledger_editor(_ledger, label="Simple ledger for to exclude outlier by id column")
+    ledger_exclude_id
+    return (ledger_exclude_id,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT sum(position) WHERE account = 'Expenses:Food' AND id != '6b634369dafa012b83e63be8be0c18bb'
+    """
+
+    sql_exclude_id = query_editor(_sql, label="Exclude specific entry by id from aggregate function")
+    sql_exclude_id
+    return (sql_exclude_id,)
+
+
+@app.cell
+def _(ledger_exclude_id, query_output, sql_exclude_id):
+    query_output(ledger_exclude_id.value, sql_exclude_id.value)
     return
 
 
