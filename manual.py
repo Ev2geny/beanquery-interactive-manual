@@ -337,7 +337,7 @@ def _(mo):
 
 
     **Shell variables**
-    The interactive shell has a few “set” variables that you can customize to change some of the behavior of the shell. These are like environment variables. Refer to **Appendix A for more information.**
+    The interactive shell has a few “set” variables that you can customize to change some of the behavior of the shell. These are like environment variables. Refer to the [Appendix A](#191-appendix-a-shell-variables) for more information.
 
     Note, that in this document for demonstration purposes the following changes are done to default environmental variables:
 
@@ -495,9 +495,11 @@ def _(mo):
     beanquery>
     ```
 
-    The list of fields in every table can be obtained using the `.describe <table_name>` command.
+    The list of columns in every table can be obtained using the `.describe <table_name>` command.
 
-    Note: for the postings table, a more complete list of columns can be obtained using the `.help targets` command.
+    Notes:
+
+    1. It [appears](https://github.com/beancount/beanquery/issues/277), that when the **transactions** table fields are used for transaction-level filtering as a part of the `FROM` clause in the [SELECT query](#8-select-query), then a few more columns are available in the transactions table, than are visible via the `.describe transactions` command. Hence for this purposes a more complete list of columns can be obtained using the `.help from` command.
     """)
     return
 
@@ -3349,7 +3351,7 @@ def _(query_editor):
     SELECT 
           root(account,1) as account_short, convert(sum(position), "USD", 2023-12-13) as value_conv, sum(position) as value_orig
     WHERE 
-           date <= 2023-12-31 AND date >= 2023-01-01 AND account ~ "Assets|Liabilities"
+           date <= 2023-12-31  AND account ~ "Assets|Liabilities"
     """
     sql_ui_net_worth_multi_commodity = query_editor(_sql, label="Multi commodity Net Worth query")
     sql_ui_net_worth_multi_commodity
