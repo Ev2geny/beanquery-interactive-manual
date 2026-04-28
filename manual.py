@@ -496,10 +496,6 @@ def _(mo):
     ```
 
     The list of columns in every table can be obtained using the `.describe <table_name>` command.
-
-    Notes:
-
-    1. It [appears](https://github.com/beancount/beanquery/issues/277), that when the **transactions** table fields are used for transaction-level filtering as a part of the `FROM` clause in the [SELECT query](#8-select-query), then a few more columns are available in the transactions table, than are visible via the `.describe transactions` command. Hence for this purposes a more complete list of columns can be obtained using the `.help from` command.
     """)
     return
 
@@ -903,6 +899,8 @@ def _(mo):
     * To get a help for the `SELECT` clause expressions type `.help targets`
     * To get a help for the `FROM` clause expressions type `.help FROM`
     * To get a help for the `WHERE` clause expressions type `.help WHERE`
+
+    So, let us reiterate: the previously discussed `.describe <table name>` provides columns, available in a particular table. This command can be used for every table. The `.help [targets | FROM | where]` on the other hand returns both columns as  well as functions, but only for transactions and postings. To make things even more confusing, note that when it comes to the transactions table, then probably due to the [bug](https://github.com/beancount/beanquery/issues/277) the `.help FROM` command makes available few more columns for the transactions table, than are available via the [`.describe transactions`](#6-available-tables-introduction) command. E.g. the [id](#1021-the-id-column) column.
 
     Example (reduced):
 
@@ -1467,7 +1465,7 @@ def _(mo):
     A special column exists that identifies each transaction uniquely: “id”. It is a unique hash automatically computed from the transaction and should be stable between runs.
     This hash is derived from the contents of the transaction object itself (if you change something about the transaction, e.g. you edit the narration, the id will change).
 
-    Note: even though the `id` field logically belongs to the transaction, it is not available in the `transactions` table (?? Is this a bug?). The only way to find it is to look in postings via traditional query.
+    Note: even though the `id` field logically belongs to the transaction, it is not available in the `transactions` table via the `.describe transactions` command (an [issue](https://github.com/beancount/beanquery/issues/277) has been raised about this). The only way to find it is to look in postings via traditional query.
     """)
     return
 
