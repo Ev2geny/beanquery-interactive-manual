@@ -10,7 +10,7 @@
 
 import marimo
 
-__generated_with = "0.23.2"
+__generated_with = "0.23.3"
 app = marimo.App(width="medium", css_file="custom.css")
 
 
@@ -1436,10 +1436,114 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    The computed weight used for this posting
-
-    _#TODO: add expamples_
+    The column shows the “weight” of postings, which beancount uses to balance the transaction. Refer to the [Beancount - Language Syntax](https://docs.google.com/document/d/1wAMVrKIA2qtRGmoVDSUBJGmYZSygUaR0uOMW1GV3YE0) document for more information.
     """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Assets:Bank 
+    2023-01-01 open Assets:Investment 
+    2023-01-01 * "Investment 1. Price only. Price used for weight"
+      Assets:Bank          -100 USD
+      Assets:Investment    10 IVV @@ 100 USD
+
+    2023-01-02 * "Investment 2. Cost cost only. Cost used for weight"
+      Assets:Bank          -200 USD
+      Assets:Investment    20 IVV {10 USD}
+
+    2023-01-03 * "Investment 3. Cost and price. Cost used for weight"
+      Assets:Bank          -200 USD
+      Assets:Investment    20 IVV {10 USD} @@ 300 USD
+    """
+
+    weight_ledger_ui = ledger_editor(_ledger, label="Ledger to demonstrate weigh column")
+    weight_ledger_ui
+    return (weight_ledger_ui,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date, account, narration, position,  weight
+    """
+
+    sql_ui_weight = query_editor(_sql, label="Query to demonstrate the weight column")
+    sql_ui_weight
+    return (sql_ui_weight,)
+
+
+@app.cell
+def _(query_output, sql_ui_weight, weight_ledger_ui):
+    query_output(weight_ledger_ui.value, sql_ui_weight.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### 10.1.6 The `meta` column
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    The meta field returns a dictionary with a postings-level meta data. This includes:
+    1. user-provided meta, parsed from the beancount file
+    2. several beancount - generated meta fields
+       * `filename`: filename of the file, where posting was parsed from
+       * `lineno`: line number in that file
+       * `__automatic__`: (optional) a flas to show whether the posting was auto-inserted to complete the transaction
+       * ?? - any other auto-inserted meta?
+
+    To access the meta field access it as a dictionary using the `meta['meta-field-name']` notation.
+
+    Example:
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+
+    2023-01-01 open Assets:BankA
+    2023-01-01 open Assets:BankB
+    2023-01-01 open Expenses:Food
+
+    2023-01-01 * "Shopping 1"
+      Expenses:Food   10 USD
+      shop: "shopping 1 shop" ; <= posting-level user-provided meta
+      Assets:BankA    -10 USD
+
+    2023-01-02 * "Shopping 2"
+      Expenses:Food   20 USD
+      Assets:BankA    
+    """
+
+    meta_ledger_ui = ledger_editor(_ledger, label="Ledger to test posting meta")
+    meta_ledger_ui
+    return (meta_ledger_ui,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date, account, narration, meta, meta['shop'] as shop_meta
+    """
+
+    sql_ui_meta = query_editor(_sql, label="Querying the meta column")
+    sql_ui_meta
+    return (sql_ui_meta,)
+
+
+@app.cell
+def _(meta_ledger_ui, query_output, sql_ui_meta):
+    query_output(meta_ledger_ui.value, sql_ui_meta.value)
     return
 
 
@@ -1513,7 +1617,7 @@ def _(ledger_id_ui, query_output, sql_ui_id_postings):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Once the `id` field is known, one can use it also for the transaction - level filtering.  E.g. one can use the `PRINT` query (discussed later) to print the specific entry. This can be useful during debugging.
+    Once the `id` field is known, one can use it also for the transaction - level filtering.  E.g. one can use the [`PRINT` query](#153-print-print-query) (discussed later) to print the specific entry. This can be useful during debugging.
     """)
     return
 
