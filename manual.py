@@ -1436,7 +1436,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    The column shows the “weight” of postings, which beancount uses to balance the transaction. Refer to the [Beancount - Language Syntax](https://docs.google.com/document/d/1wAMVrKIA2qtRGmoVDSUBJGmYZSygUaR0uOMW1GV3YE0) document for more information.
+    The column shows the “weight” of postings, which beancount internally uses to balance the transaction. Refer to the [Beancount - Language Syntax](https://docs.google.com/document/d/1wAMVrKIA2qtRGmoVDSUBJGmYZSygUaR0uOMW1GV3YE0) document for more information.
     """)
     return
 
