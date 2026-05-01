@@ -28,9 +28,9 @@ def _(mo):
 
 @app.cell
 def _():
+    import hashlib
     import tomllib
     from pathlib import Path
-
 
     import json
     import urllib.request
@@ -38,9 +38,7 @@ def _():
 
     import marimo as mo
 
-    import io
-
-    return Path, io, json, mo, tomllib, urllib
+    return Path, hashlib, json, mo, tomllib, urllib
 
 
 @app.cell(hide_code=True)
@@ -194,14 +192,14 @@ def _():
 
 
 @app.cell
-def _(Path, json, urllib):
+def _(Path, hashlib, json, urllib):
     """
     A set of utilities for loading data from GitHub to the molab environment.
     This is needed, because molab only fetches one specified file from the repository
     """
 
 
-    def api_get(repo: str, path: str, branch: str) -> dict | list:
+    def _api_get(repo: str, path: str, branch: str) -> dict | list:
         """Fetch the GitHub Contents API response for a given repo path.
 
         Calls https://api.github.com/repos/{repo}/contents/{path}?ref={branch}.
@@ -224,7 +222,12 @@ def _(Path, json, urllib):
         with urllib.request.urlopen(url) as resp:
             return json.loads(resp.read().decode())
 
-    def download(download_url: str, local_path: Path) -> None:
+    def _git_blob_sha(local_path: Path) -> str:
+        data = local_path.read_bytes()
+        header = f"blob {len(data)}\0".encode()
+        return hashlib.sha1(header + data).hexdigest()
+
+    def _download(download_url: str, local_path: Path) -> None:
         """Download a single file from a URL and write it to a local path.
 
         Intermediate directories are created automatically if they do not exist.
@@ -237,9 +240,27 @@ def _(Path, json, urllib):
         Raises:
             urllib.error.URLError: If the download URL is unreachable.
         """
+        # mo.output.append(f"downloading file {local_path}")
+
         local_path.parent.mkdir(parents=True, exist_ok=True)
         with urllib.request.urlopen(download_url) as resp:
             local_path.write_bytes(resp.read())
+
+    def download_item_if_needed(local_path: Path, sha: str, download_url: str) -> None:
+
+        # mo.output.append(f"-------------------------------------")
+        # mo.output.append(f"checking to download {local_path}...")
+
+        if local_path.exists():
+            # mo.output.append(f"File already exists")
+            if _git_blob_sha(local_path) == sha:
+                # mo.output.append(f"File already exists and matches expected SHA. Skipping")
+                return
+            else:
+                # mo.output.append("File exists, but sha is different")
+                pass
+
+        _download(download_url, local_path)
 
     def copy_item(repo: str, path: str, branch: str) -> None:
         """Recursively copy a file or directory from GitHub to the local filesystem.
@@ -253,13 +274,16 @@ def _(Path, json, urllib):
             path:   Path to a file or directory relative to the repository root.
             branch: Branch, tag, or commit SHA to resolve the path against.
         """
-        contents = api_get(repo, path, branch)
+        contents = _api_get(repo, path, branch)
+
+        # in case this is an individual fle
         if isinstance(contents, dict):
-            download(contents["download_url"], Path(contents["path"]))
+            download_item_if_needed(Path(contents["path"]), contents["sha"], contents["download_url"])
         else:
+        # in case this is a directory    
             for item in contents:
                 if item["type"] == "file":
-                    download(item["download_url"], Path(item["path"]))
+                    download_item_if_needed(Path(item["path"]), item["sha"], item["download_url"])
                 elif item["type"] == "dir":
                     copy_item(repo, item["path"], branch)
 
@@ -297,7 +321,9 @@ def _(copy_data_from_github, runs_in_molab):
             branch="develop",
             data=["images/", "custom.css"],
         )
-    return
+
+    files_downloaded = True
+    return (files_downloaded,)
 
 
 @app.cell(hide_code=True)
@@ -357,7 +383,8 @@ def _(mo):
 
 
 @app.cell
-def _(mo):
+def _(files_downloaded, mo):
+    _ = files_downloaded
     mo.image(src = "images/TOC.png", width="40%")
     return
 
@@ -1158,7 +1185,8 @@ def _(mo):
 
 
 @app.cell
-def _(mo):
+def _(files_downloaded, mo):
+    _ = files_downloaded
     mo.image("images/transaction_postings.png", alt="Diagram of transactions and postings")
     return
 
@@ -1176,7 +1204,8 @@ def _(mo):
 
 
 @app.cell
-def _(mo):
+def _(files_downloaded, mo):
+    _ = files_downloaded
     mo.image("images/transaction_postings_v2.png", alt="Diagram of transactions and postings from beanquery perspective")
     return
 
