@@ -31,6 +31,7 @@ def _():
     import hashlib
     import tomllib
     from pathlib import Path
+    import io
 
     import json
     import urllib.request
@@ -38,7 +39,7 @@ def _():
 
     import marimo as mo
 
-    return Path, hashlib, json, mo, tomllib, urllib
+    return Path, hashlib, io, json, mo, tomllib, urllib
 
 
 @app.cell(hide_code=True)
