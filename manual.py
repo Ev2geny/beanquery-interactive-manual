@@ -10,7 +10,7 @@
 
 import marimo
 
-__generated_with = "0.23.2"
+__generated_with = "0.23.4"
 app = marimo.App(width="medium", css_file="custom.css")
 
 
@@ -756,20 +756,93 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     Common comparison and logical operators are provided to operate on the available data columns:
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### 9.1.1 Numeric operators
+
     * = (equality), != (inequality)
     * < (less than), <= (less than or equal)
     * \> (greater than), >= (greater than or equal)
+    * ... BETWEEN ... AND ... (check numeric range)
+
+
+    Beanquery also provides a regular expression search operator on string objects:
+    * ~ (search regexp)
+    * ?~ (search regexp, inverted argument order)
+    * !~ (inverse of ~, same as `NOT ( ... ~ ...)`)
+
+    The example below demonstrates a few of these operators
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### 9.1.2 String operators
+
+    Comparing strings:
+
+    * = (equality), != (inequality)
+    * < , <= \>, >= (lexical comparisons)
+    * substr IN string  (check for substring)
+
+    Comparing strings to regular expression patterns:
+
+    * mystring ~ regex (search regexp)
+    * regex ?~ mystring (same, inverted argument order)
+    * mystring !~ regex (inverse of ~, same as `NOT ( ... ~ ...)`)
+
+    Modifications:
+
+    * \+ (string concatentation)
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### 9.1.3 Date operators
+
+    * =, !=, \<, \<=, \>, \>=  (comparisons)
+    * date BETWEEN start AND end (check date range)
+    * date + interval(str), date + int
+
+    /// details | how to use `date + interval(str)`
+
+    The BQL function `interval('...')` creates an object of type `relativedelta` that can be used to modify dates using the + operator. Example: `date + interval('2 weeks')`
+
+    Instead of `'week'`, you can use: day(s), month(s), year(s), decade(s), century/centuries.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### 9.1.4 Logical operators
+
+    Operators requiring or returning logical values:
+
     * AND (logical conjunction)
     * OR (logical disjunction)
     * NOT (logical negation)
     * IN (set membership)
+    * IS NULL (check if value is NULL)
+    """)
+    return
 
-    Beanquery also provides a regular expression search operator on string objects:
-    * ~ (search regexp)
 
-    ?? Which not-logical operators are supported? E.g. I found, that the '+' operator also works. E.g.: `SELECT "a"+"b"`
-
-    The example below demonstrates a few of these operators
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### 9.1.5 Operators Example
     """)
     return
 
