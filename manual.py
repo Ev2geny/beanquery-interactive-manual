@@ -976,7 +976,7 @@ def _(query_editor):
     SELECT 
          date, account, payee,narration, position
     WHERE 
-          account ~ "^Expenses"
+          account ~ '^Expenses'
           AND "trip-london" IN tags
           AND NOT payee = "John"
     """
@@ -1004,14 +1004,21 @@ def _(mo):
     mo.md(r"""
     The following types of constants can be entered in the beanquery expression
 
-    * String: `"I am a string"`
-    * Date:  Dates are entered in `YYYY-MM-DD format: SELECT * WHERE date < 2024-05-20..`
+    * String: `'I am a string'`
+    * Date:  Dates are entered in `YYYY-MM-DD format without any quotes: SELECT * WHERE date < 2024-05-20..`
     * Integer: `1`
     * Boolean: `TRUE, FALSE`
     * Number:  `1.2`
     * Null object: `NULL`       ?? How can we use this NULL in practice?
     * ?? can we enter a set of strings constant in an expression?
-    """)
+    
+    /// details | **Avoid double quotes for strings**
+    Avoid the use of double quotes ("abc") for strings. Double quotes are meant to escape column names with
+    unorthodox names (like spaces) and are treated as literal strings only if no column of that name exists.
+    Using double quotes can lead to unexpected results in cases like `date_trunc("month", date)`. That call
+    is a syntax error, as `"month"` is converted to the month column (int) before the function is called and
+    is not forwarded to `date_trunc` as a string parameter."""
+    )
     return
 
 
@@ -1035,7 +1042,7 @@ def _(ledger_editor):
 def _(query_editor):
     _sql = """\
     SELECT 
-       "I am a string" as string_const, 
+       'I am a string' as string_const, 
         2026-10-10 as date_const, 
         10 as int_const,  
         NULL as null_const, 
@@ -1989,7 +1996,7 @@ def _(query_editor):
     SELECT 
         payee, account, sum(position), last(date)
     WHERE 
-        account ~ "^Expenses"
+        account ~ '^Expenses'
     GROUP BY payee, account
 
     """
@@ -2010,7 +2017,7 @@ def _(query_editor):
     SELECT 
         payee, account, sum(position), last(date)
     WHERE 
-        account ~ "^Expenses"
+        account ~ '^Expenses'
     GROUP BY 1, 2
     """
     agg_query_ui_group_by_position = query_editor(_sql, label="You may also use the positional order of the targets to declare the group key, like this")
@@ -2030,7 +2037,7 @@ def _(query_editor):
     SELECT 
         payee, account as acc, sum(position), last(date)
     WHERE 
-        account ~ "^Expenses"
+        account ~ '^Expenses'
     GROUP BY 1, acc
     """
     agg_query_ui_group_by_position_and_name = query_editor(_sql, label="Furthermore, if you name your targets, you can use the explicit target names:")
@@ -2058,7 +2065,7 @@ def _(query_editor):
     SELECT 
         payee, account, sum(position), last(date)
     WHERE 
-        account ~ "^Expenses"
+        account ~ '^Expenses'
 
     """
     agg_query_without_groupby_ui = query_editor(_sql, label="Aggregate query example")
@@ -2589,7 +2596,7 @@ def _(query_editor):
     SELECT 
         root(account,1) as acc_shortened,
         sum(position)
-    WHERE account ~ "^Expenses|Income"
+    WHERE account ~ '^Expenses|Income'
     """
     root_func_query_ui = query_editor(_sql, label="Using ROOT() function to calculate square")
     root_func_query_ui
@@ -3063,7 +3070,7 @@ def _(query_editor):
     _sql = """\
     SELECT account, sum(position) 
     FROM OPEN ON 2012-01-01 CLOSE ON 2013-01-01
-    WHERE account ~ "Income|Expenses"
+    WHERE account ~ 'Income|Expenses'
     GROUP BY 1
     ORDER BY 1
     """
@@ -3092,7 +3099,7 @@ def _(query_editor):
     SELECT account, sum(position) 
     WHERE 
          date >= 2012-01-01 and date < 2013-01-01
-         AND account ~ "Income|Expenses"
+         AND account ~ 'Income|Expenses'
     GROUP BY 1
     ORDER BY 1
     """
@@ -3120,7 +3127,7 @@ def _(query_editor):
     _sql = """\
     SELECT account, sum(position) 
     FROM OPEN ON 2012-01-01 CLOSE ON 2013-01-01 CLEAR
-    WHERE not account ~ "Income|Expenses"
+    WHERE not account ~ 'Income|Expenses'
     GROUP BY 1
     ORDER BY 1;
     """
@@ -3226,7 +3233,7 @@ def _(ledger_ui_journal, query_output, sql_ui_journal):
 def _(query_editor):
     _sql = """\
     SELECT date, narration, account, position, balance
-    WHERE account ~ "Assets:Bank-A"
+    WHERE account ~ 'Assets:Bank-A'
     """
     sql_ui_journal_balance = query_editor(_sql, label="Equivalent to JOURNAL SELECT ... WHERE query")
     sql_ui_journal_balance
@@ -3334,7 +3341,7 @@ def _(mo):
 def _(query_editor):
     _sql = """\
     SELECT root(account,1) as account_short, SUM(position)
-    WHERE date <=2023-01-03 AND account ~ "^Assets"
+    WHERE date <=2023-01-03 AND account ~ '^Assets'
     """
     sql_ui_balances_where_per_account = query_editor(_sql, label="Balances per set of accounts with WHERE filter")
     sql_ui_balances_where_per_account
@@ -3627,7 +3634,11 @@ def _(query_editor):
     SELECT 
           root(account,1) as account_short, convert(sum(position), "USD", 2023-12-13) as value_conv, sum(position) as value_orig
     WHERE 
+<<<<<<< patch-1
+           date <= 2023-12-31 AND date >= 2023-01-01 AND account ~ 'Assets|Liabilities'
+=======
            date <= 2023-12-31  AND account ~ "Assets|Liabilities"
+>>>>>>> develop
     """
     sql_ui_net_worth_multi_commodity = query_editor(_sql, label="Multi commodity Net Worth query")
     sql_ui_net_worth_multi_commodity
@@ -3665,7 +3676,7 @@ def _(query_editor):
     WHERE 
            date <= 2023-12-31 
            AND date >= 2023-01-01 
-           AND account ~ "Income|Expenses"
+           AND account ~ 'Income|Expenses'
     """
     sql_ui_Pand_L_multi_commodity_per_account = query_editor(_sql, label="Multi commodity P&L query by account")
     # sql_ui_Pand_L_multi_commodity_per_account
@@ -3681,7 +3692,7 @@ def _(query_editor):
     WHERE 
            date <= 2023-12-31 
            AND date >= 2023-01-01 
-           AND account ~ "Income|Expenses"
+           AND account ~ 'Income|Expenses'
     """
     sql_ui_Pand_L_multi_commodity_total = query_editor(_sql, label="Multi commodity P&L query total")
     # sql_ui_Pand_L_multi_commodity_total
