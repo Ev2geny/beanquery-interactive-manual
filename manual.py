@@ -10,7 +10,7 @@
 
 import marimo
 
-__generated_with = "0.23.4"
+__generated_with = "0.23.3"
 app = marimo.App(width="medium", css_file="custom.css")
 
 
@@ -26,10 +26,25 @@ def _(mo):
     return
 
 
-@app.cell(hide_code=True)
-def _(mo):
+@app.cell
+def _():
+    import hashlib
     import tomllib
     from pathlib import Path
+    import io
+
+    import json
+    import urllib.request
+
+
+    import marimo as mo
+
+    return Path, hashlib, io, json, mo, tomllib, urllib
+
+
+@app.cell(hide_code=True)
+def _(Path, mo, tomllib):
+
     _pyproject_path = Path(__file__).parent / "pyproject.toml"
     with open(_pyproject_path, "rb") as _f:
         _version = tomllib.load(_f)["project"]["version"]
@@ -38,11 +53,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _():
-    import marimo as mo
-
-    import io
-
+def _(io, mo):
     from beancount.loader import load_string
     from beancount.core import display_context
     from beancount.parser import printer as bc_printer
@@ -153,7 +164,167 @@ def _():
         ui = mo.ui.code_editor(default_text, language="sql", label=label, show_copy_button=True, min_height=1, debounce=True)
         return ui
 
-    return ledger_editor, mo, query_editor, query_output
+    return ledger_editor, query_editor, query_output
+
+
+@app.cell
+def _():
+    def runs_in_molab() -> bool:
+        """
+        Heuristic to determine if we're running in the molab environment. 
+        We want to do this because in the molab environment, the beancount file is not available, 
+        and we will need to download it from github.
+        """
+        from pathlib import Path
+
+        EXPECTED_IN_MOLAB_NAMES: set[str] = {
+            "lock.txt",
+            "notebook.py",
+        } 
+
+        cwd = Path.cwd()
+        # List the names of the files and folders in the current directory
+        found_names: set[str] = {p.name for p in cwd.iterdir()}
+
+        return EXPECTED_IN_MOLAB_NAMES.issubset(found_names)
+
+    # runs_in_molab()
+    return (runs_in_molab,)
+
+
+@app.cell
+def _(Path, hashlib, json, urllib):
+    """
+    A set of utilities for loading data from GitHub to the molab environment.
+    This is needed, because molab only fetches one specified file from the repository
+    """
+
+
+    def _api_get(repo: str, path: str, branch: str) -> dict | list:
+        """Fetch the GitHub Contents API response for a given repo path.
+
+        Calls https://api.github.com/repos/{repo}/contents/{path}?ref={branch}.
+
+        Args:
+            repo:   Repository in 'owner/repo' form (e.g. 'octocat/Hello-World').
+            path:   Path relative to the repository root (e.g. 'src/data' or 'README.md').
+            branch: Branch, tag, or commit SHA to resolve the path against.
+
+        Returns:
+            A dict when the path points to a single file, or a list of dicts when
+            the path points to a directory. Each dict contains at minimum the keys
+            'name', 'path', 'type' ('file' | 'dir'), and 'download_url'.
+
+        Raises:
+            urllib.error.HTTPError: If the GitHub API returns a non-2xx status
+                (e.g. 404 for a missing path or 403 for rate-limiting).
+        """
+        url = f"https://api.github.com/repos/{repo}/contents/{path}?ref={branch}"
+        with urllib.request.urlopen(url) as resp:
+            return json.loads(resp.read().decode())
+
+    def _git_blob_sha(local_path: Path) -> str:
+        data = local_path.read_bytes()
+        header = f"blob {len(data)}\0".encode()
+        return hashlib.sha1(header + data).hexdigest()
+
+    def _download(download_url: str, local_path: Path) -> None:
+        """Download a single file from a URL and write it to a local path.
+
+        Intermediate directories are created automatically if they do not exist.
+
+        Args:
+            download_url: Direct URL to the raw file content.
+            local_path:   Destination path on the local filesystem. Any missing
+                          parent directories are created with mkdir(parents=True).
+
+        Raises:
+            urllib.error.URLError: If the download URL is unreachable.
+        """
+        # mo.output.append(f"downloading file {local_path}")
+
+        local_path.parent.mkdir(parents=True, exist_ok=True)
+        with urllib.request.urlopen(download_url) as resp:
+            local_path.write_bytes(resp.read())
+
+    def download_item_if_needed(local_path: Path, sha: str, download_url: str) -> None:
+
+        # mo.output.append(f"-------------------------------------")
+        # mo.output.append(f"checking to download {local_path}...")
+
+        if local_path.exists():
+            # mo.output.append(f"File already exists")
+            if _git_blob_sha(local_path) == sha:
+                # mo.output.append(f"File already exists and matches expected SHA. Skipping")
+                return
+            else:
+                # mo.output.append("File exists, but sha is different")
+                pass
+
+        _download(download_url, local_path)
+
+    def copy_item(repo: str, path: str, branch: str) -> None:
+        """Recursively copy a file or directory from GitHub to the local filesystem.
+
+        If *path* resolves to a file, that file is downloaded. If it resolves to a
+        directory, all files inside it are downloaded recursively, preserving the
+        directory structure relative to the repository root.
+
+        Args:
+            repo:   Repository in 'owner/repo' form.
+            path:   Path to a file or directory relative to the repository root.
+            branch: Branch, tag, or commit SHA to resolve the path against.
+        """
+        contents = _api_get(repo, path, branch)
+
+        # in case this is an individual fle
+        if isinstance(contents, dict):
+            download_item_if_needed(Path(contents["path"]), contents["sha"], contents["download_url"])
+        else:
+        # in case this is a directory    
+            for item in contents:
+                if item["type"] == "file":
+                    download_item_if_needed(Path(item["path"]), item["sha"], item["download_url"])
+                elif item["type"] == "dir":
+                    copy_item(repo, item["path"], branch)
+
+    def copy_data_from_github(repo: str, branch: str, data: list) -> None:
+        """Copy files and/or directories from a GitHub repository to the local environment.
+
+        Each entry in *data* may be a path to an individual file or to a directory.
+        Directories are copied recursively. The local path structure mirrors the
+        repository layout relative to the repository root.
+
+        Args:
+            repo:   Repository in 'owner/repo' form (e.g. 'octocat/Hello-World').
+            branch: Branch to copy from (e.g. 'main').
+            data:   List of file or directory paths relative to the repository root.
+
+        Example:
+            copy_data_from_github(
+                repo="owner/myrepo",
+                branch="main",
+                data=["data/prices.csv", "config/"],
+            )
+        """
+        for item in data:
+            copy_item(repo, item, branch)
+
+    return (copy_data_from_github,)
+
+
+@app.cell
+def _(copy_data_from_github, runs_in_molab):
+    # downloading missing files from github when running in molab
+    if runs_in_molab():
+        copy_data_from_github(
+            repo="Ev2geny/beanquery-interactive-manual",
+            branch="develop",
+            data=["images/", "custom.css"],
+        )
+
+    files_downloaded = True
+    return (files_downloaded,)
 
 
 @app.cell(hide_code=True)
@@ -213,7 +384,8 @@ def _(mo):
 
 
 @app.cell
-def _(mo):
+def _(files_downloaded, mo):
+    _ = files_downloaded
     mo.image(src = "images/TOC.png", width="40%")
     return
 
@@ -337,7 +509,7 @@ def _(mo):
 
 
     **Shell variables**
-    The interactive shell has a few “set” variables that you can customize to change some of the behavior of the shell. These are like environment variables. Refer to **Appendix A for more information.**
+    The interactive shell has a few “set” variables that you can customize to change some of the behavior of the shell. These are like environment variables. Refer to the [Appendix A](#191-appendix-a-shell-variables) for more information.
 
     Note, that in this document for demonstration purposes the following changes are done to default environmental variables:
 
@@ -495,9 +667,7 @@ def _(mo):
     beanquery>
     ```
 
-    The list of fields in every table can be obtained using the `.describe <table_name>` command.
-
-    Note: for the postings table, a more complete list of columns can be obtained using the `.help targets` command.
+    The list of columns in every table can be obtained using the `.describe <table_name>` command.
     """)
     return
 
@@ -879,7 +1049,7 @@ def _(query_editor):
     SELECT 
          date, account, payee,narration, position
     WHERE 
-          account ~ "^Expenses"
+          account ~ '^Expenses'
           AND "trip-london" IN tags
           AND NOT payee = "John"
     """
@@ -907,14 +1077,21 @@ def _(mo):
     mo.md(r"""
     The following types of constants can be entered in the beanquery expression
 
-    * String: `"I am a string"`
-    * Date:  Dates are entered in `YYYY-MM-DD format: SELECT * WHERE date < 2024-05-20..`
+    * String: `'I am a string'`
+    * Date:  Dates are entered in `YYYY-MM-DD format without any quotes: SELECT * WHERE date < 2024-05-20..`
     * Integer: `1`
     * Boolean: `TRUE, FALSE`
     * Number:  `1.2`
     * Null object: `NULL`       ?? How can we use this NULL in practice?
     * ?? can we enter a set of strings constant in an expression?
-    """)
+    
+    /// details | **Avoid double quotes for strings**
+    Avoid the use of double quotes ("abc") for strings. Double quotes are meant to escape column names with
+    unorthodox names (like spaces) and are treated as literal strings only if no column of that name exists.
+    Using double quotes can lead to unexpected results in cases like `date_trunc("month", date)`. That call
+    is a syntax error, as `"month"` is converted to the month column (int) before the function is called and
+    is not forwarded to `date_trunc` as a string parameter."""
+    )
     return
 
 
@@ -938,7 +1115,7 @@ def _(ledger_editor):
 def _(query_editor):
     _sql = """\
     SELECT 
-       "I am a string" as string_const, 
+       'I am a string' as string_const, 
         2026-10-10 as date_const, 
         10 as int_const,  
         NULL as null_const, 
@@ -974,6 +1151,8 @@ def _(mo):
     * To get a help for the `SELECT` clause expressions type `.help targets`
     * To get a help for the `FROM` clause expressions type `.help FROM`
     * To get a help for the `WHERE` clause expressions type `.help WHERE`
+
+    So, let us reiterate: the previously discussed `.describe <table name>` provides columns, available in a particular table. This command can be used for every table. The `.help [targets | FROM | where]` on the other hand returns both columns as  well as functions, but only for transactions and postings. To make things even more confusing, note that when it comes to the transactions table, then probably due to the [bug](https://github.com/beancount/beanquery/issues/277) the `.help FROM` command makes available few more columns for the transactions table, than are available via the [`.describe transactions`](#6-available-tables-introduction) command. E.g. the [id](#1021-the-id-column) column.
 
     Example (reduced):
 
@@ -1087,7 +1266,8 @@ def _(mo):
 
 
 @app.cell
-def _(mo):
+def _(files_downloaded, mo):
+    _ = files_downloaded
     mo.image("images/transaction_postings.png", alt="Diagram of transactions and postings")
     return
 
@@ -1105,7 +1285,8 @@ def _(mo):
 
 
 @app.cell
-def _(mo):
+def _(files_downloaded, mo):
+    _ = files_downloaded
     mo.image("images/transaction_postings_v2.png", alt="Diagram of transactions and postings from beanquery perspective")
     return
 
@@ -1509,10 +1690,114 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    The computed weight used for this posting
-
-    _#TODO: add expamples_
+    The column shows the “weight” of postings, which beancount internally uses to balance the transaction. Refer to the [Beancount - Language Syntax](https://docs.google.com/document/d/1wAMVrKIA2qtRGmoVDSUBJGmYZSygUaR0uOMW1GV3YE0) document for more information.
     """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Assets:Bank 
+    2023-01-01 open Assets:Investment 
+    2023-01-01 * "Investment 1. Price only. Price used for weight"
+      Assets:Bank          -100 USD
+      Assets:Investment    10 IVV @@ 100 USD
+
+    2023-01-02 * "Investment 2. Cost cost only. Cost used for weight"
+      Assets:Bank          -200 USD
+      Assets:Investment    20 IVV {10 USD}
+
+    2023-01-03 * "Investment 3. Cost and price. Cost used for weight"
+      Assets:Bank          -200 USD
+      Assets:Investment    20 IVV {10 USD} @@ 300 USD
+    """
+
+    weight_ledger_ui = ledger_editor(_ledger, label="Ledger to demonstrate weigh column")
+    weight_ledger_ui
+    return (weight_ledger_ui,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date, account, narration, position,  weight
+    """
+
+    sql_ui_weight = query_editor(_sql, label="Query to demonstrate the weight column")
+    sql_ui_weight
+    return (sql_ui_weight,)
+
+
+@app.cell
+def _(query_output, sql_ui_weight, weight_ledger_ui):
+    query_output(weight_ledger_ui.value, sql_ui_weight.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### 10.1.6 The `meta` column
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    The meta field returns a dictionary with a postings-level meta data. This includes:
+    1. user-provided meta, parsed from the beancount file
+    2. several beancount - generated meta fields
+       * `filename`: filename of the file, where posting was parsed from
+       * `lineno`: line number in that file
+       * `__automatic__`: (optional) a flas to show whether the posting was auto-inserted to complete the transaction
+       * ?? - any other auto-inserted meta?
+
+    To access the meta field access it as a dictionary using the `meta['meta-field-name']` notation.
+
+    Example:
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+
+    2023-01-01 open Assets:BankA
+    2023-01-01 open Assets:BankB
+    2023-01-01 open Expenses:Food
+
+    2023-01-01 * "Shopping 1"
+      Expenses:Food   10 USD
+      shop: "shopping 1 shop" ; <= posting-level user-provided meta
+      Assets:BankA    -10 USD
+
+    2023-01-02 * "Shopping 2"
+      Expenses:Food   20 USD
+      Assets:BankA    
+    """
+
+    meta_ledger_ui = ledger_editor(_ledger, label="Ledger to test posting meta")
+    meta_ledger_ui
+    return (meta_ledger_ui,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date, account, narration, meta, meta['shop'] as shop_meta
+    """
+
+    sql_ui_meta = query_editor(_sql, label="Querying the meta column")
+    sql_ui_meta
+    return (sql_ui_meta,)
+
+
+@app.cell
+def _(meta_ledger_ui, query_output, sql_ui_meta):
+    query_output(meta_ledger_ui.value, sql_ui_meta.value)
     return
 
 
@@ -1538,7 +1823,7 @@ def _(mo):
     A special column exists that identifies each transaction uniquely: “id”. It is a unique hash automatically computed from the transaction and should be stable between runs.
     This hash is derived from the contents of the transaction object itself (if you change something about the transaction, e.g. you edit the narration, the id will change).
 
-    Note: even though the `id` field logically belongs to the transaction, it is not available in the `transactions` table (?? Is this a bug?). The only way to find it is to look in postings via traditional query.
+    Note: even though the `id` field logically belongs to the transaction, it is not available in the `transactions` table via the `.describe transactions` command (an [issue](https://github.com/beancount/beanquery/issues/277) has been raised about this). The only way to find it is to look in postings via traditional query.
     """)
     return
 
@@ -1586,7 +1871,7 @@ def _(ledger_id_ui, query_output, sql_ui_id_postings):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Once the `id` field is known, one can use it also for the transaction - level filtering.  E.g. one can use the `PRINT` query (discussed later) to print the specific entry. This can be useful during debugging.
+    Once the `id` field is known, one can use it also for the transaction - level filtering.  E.g. one can use the [`PRINT` query](#153-print-print-query) (discussed later) to print the specific entry. This can be useful during debugging.
     """)
     return
 
@@ -1784,7 +2069,7 @@ def _(query_editor):
     SELECT 
         payee, account, sum(position), last(date)
     WHERE 
-        account ~ "^Expenses"
+        account ~ '^Expenses'
     GROUP BY payee, account
 
     """
@@ -1805,7 +2090,7 @@ def _(query_editor):
     SELECT 
         payee, account, sum(position), last(date)
     WHERE 
-        account ~ "^Expenses"
+        account ~ '^Expenses'
     GROUP BY 1, 2
     """
     agg_query_ui_group_by_position = query_editor(_sql, label="You may also use the positional order of the targets to declare the group key, like this")
@@ -1825,7 +2110,7 @@ def _(query_editor):
     SELECT 
         payee, account as acc, sum(position), last(date)
     WHERE 
-        account ~ "^Expenses"
+        account ~ '^Expenses'
     GROUP BY 1, acc
     """
     agg_query_ui_group_by_position_and_name = query_editor(_sql, label="Furthermore, if you name your targets, you can use the explicit target names:")
@@ -1853,7 +2138,7 @@ def _(query_editor):
     SELECT 
         payee, account, sum(position), last(date)
     WHERE 
-        account ~ "^Expenses"
+        account ~ '^Expenses'
 
     """
     agg_query_without_groupby_ui = query_editor(_sql, label="Aggregate query example")
@@ -2384,7 +2669,7 @@ def _(query_editor):
     SELECT 
         root(account,1) as acc_shortened,
         sum(position)
-    WHERE account ~ "^Expenses|Income"
+    WHERE account ~ '^Expenses|Income'
     """
     root_func_query_ui = query_editor(_sql, label="Using ROOT() function to calculate square")
     root_func_query_ui
@@ -2858,7 +3143,7 @@ def _(query_editor):
     _sql = """\
     SELECT account, sum(position) 
     FROM OPEN ON 2012-01-01 CLOSE ON 2013-01-01
-    WHERE account ~ "Income|Expenses"
+    WHERE account ~ 'Income|Expenses'
     GROUP BY 1
     ORDER BY 1
     """
@@ -2887,7 +3172,7 @@ def _(query_editor):
     SELECT account, sum(position) 
     WHERE 
          date >= 2012-01-01 and date < 2013-01-01
-         AND account ~ "Income|Expenses"
+         AND account ~ 'Income|Expenses'
     GROUP BY 1
     ORDER BY 1
     """
@@ -2915,7 +3200,7 @@ def _(query_editor):
     _sql = """\
     SELECT account, sum(position) 
     FROM OPEN ON 2012-01-01 CLOSE ON 2013-01-01 CLEAR
-    WHERE not account ~ "Income|Expenses"
+    WHERE not account ~ 'Income|Expenses'
     GROUP BY 1
     ORDER BY 1;
     """
@@ -3021,7 +3306,7 @@ def _(ledger_ui_journal, query_output, sql_ui_journal):
 def _(query_editor):
     _sql = """\
     SELECT date, narration, account, position, balance
-    WHERE account ~ "Assets:Bank-A"
+    WHERE account ~ 'Assets:Bank-A'
     """
     sql_ui_journal_balance = query_editor(_sql, label="Equivalent to JOURNAL SELECT ... WHERE query")
     sql_ui_journal_balance
@@ -3129,7 +3414,7 @@ def _(mo):
 def _(query_editor):
     _sql = """\
     SELECT root(account,1) as account_short, SUM(position)
-    WHERE date <=2023-01-03 AND account ~ "^Assets"
+    WHERE date <=2023-01-03 AND account ~ '^Assets'
     """
     sql_ui_balances_where_per_account = query_editor(_sql, label="Balances per set of accounts with WHERE filter")
     sql_ui_balances_where_per_account
@@ -3422,7 +3707,7 @@ def _(query_editor):
     SELECT 
           root(account,1) as account_short, convert(sum(position), "USD", 2023-12-13) as value_conv, sum(position) as value_orig
     WHERE 
-           date <= 2023-12-31 AND date >= 2023-01-01 AND account ~ "Assets|Liabilities"
+           date <= 2023-12-31 AND account ~ 'Assets|Liabilities'
     """
     sql_ui_net_worth_multi_commodity = query_editor(_sql, label="Multi commodity Net Worth query")
     sql_ui_net_worth_multi_commodity
@@ -3460,7 +3745,7 @@ def _(query_editor):
     WHERE 
            date <= 2023-12-31 
            AND date >= 2023-01-01 
-           AND account ~ "Income|Expenses"
+           AND account ~ 'Income|Expenses'
     """
     sql_ui_Pand_L_multi_commodity_per_account = query_editor(_sql, label="Multi commodity P&L query by account")
     # sql_ui_Pand_L_multi_commodity_per_account
@@ -3476,7 +3761,7 @@ def _(query_editor):
     WHERE 
            date <= 2023-12-31 
            AND date >= 2023-01-01 
-           AND account ~ "Income|Expenses"
+           AND account ~ 'Income|Expenses'
     """
     sql_ui_Pand_L_multi_commodity_total = query_editor(_sql, label="Multi commodity P&L query total")
     # sql_ui_Pand_L_multi_commodity_total

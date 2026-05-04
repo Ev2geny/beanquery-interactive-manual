@@ -14,18 +14,40 @@ It was created with the following goals in mind:
 **Current state**: work is ongoing. 
 Comments, feedback and PRs are more than welcome!
 
-## How to open the manual
+## 1 How to open the manual
 
-### As a static HTML file
+### 1.1 As a static HTML file
 
 As a static HTML file the manual can be read at the **[GitHub Pages](https://ev2geny.github.io/beanquery-interactive-manual/)**
 
-### To interact with the document, whilst reading
+### 1.2 To interact with the document, whilst reading
+
+#### 1.2.1 Option 1: From the Marimo [Molab](https://molab.marimo.io/) cloud
+
+1. Click on [this](https://molab.marimo.io/github.com/Ev2geny/beanquery-interactive-manual/manual.py) URL
+   
+2. Once the notebook is open in the Molab cloud, click Login button on the right side. If needed, create an account.
+   
+3. Click on the Fork button on the top right
+   
+   ![fork_image](images/fork.png)
+
+4. Once the notebook has been forked, click on the Run button on the bottom right.
+   
+   ![marimo run](images/marimo_run.png)
+
+5. Wait for notebook to run (the Run button will change its color to white)
+6. Click on the **Toggle app view** button to display the notebook in the view mode (to hide the code).
+
+![Toogle app view](images/toggle_app_view.png)
+
+#### 1.2.2 Option 2: Locally on your PC
 
 To be able to interact with the manual (to change queries, ledgers) one has to run it as a marimo notebook.
 To achieve this do the following:
 
 1. If not done yet, install uv for your OS, following the [official instructions](https://docs.astral.sh/uv/getting-started/installation/)
+   
 2. Clone this directory:
    ```
    git clone https://github.com/Ev2geny/beanquery-interactive-manual.git
@@ -37,7 +59,7 @@ To achieve this do the following:
    uv run marimo run manual.py
    ```
 
-## How to read the manual
+## 2 How to read the manual
 
 Use the popping Table of Content on the right side to navigate the document
 
