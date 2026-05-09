@@ -42,6 +42,12 @@ The interactive cells wire together `ledger_editor` + `query_editor` outputs int
 - `develop` — active development
 - `main` — stable/published releases; PRs merge here
 
+## References
+
+The following files can be used for references:
+
+`references/beanquery_source_code` - source code of beanquery
+
 ## Improving English language style guide:
 
 - Do not remove ?? and #TODO from the text, when asked to improve English, as these are deliberately left there

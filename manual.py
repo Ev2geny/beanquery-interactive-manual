@@ -903,7 +903,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    When we talked about SQL query we mentioned, but not defined the notion of an expression. Let us correct this.
+    When we talked about the [SELECT](#8-select-query) query we mentioned, but not defined the notion of an expression. Let us correct this.
 
     An **expression** is something, which can be evaluated to a value.
 
@@ -918,101 +918,8 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     ### 9.1 Operators
-    """)
-    return
 
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    Common comparison and logical operators are provided to operate on the available data columns:
-    """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    #### 9.1.1 Numeric operators
-
-    * = (equality), != (inequality)
-    * < (less than), <= (less than or equal)
-    * \> (greater than), >= (greater than or equal)
-    * ... BETWEEN ... AND ... (check numeric range)
-
-
-    Beanquery also provides a regular expression search operator on string objects:
-    * ~ (search regexp)
-    * ?~ (search regexp, inverted argument order)
-    * !~ (inverse of ~, same as `NOT ( ... ~ ...)`)
-
-    The example below demonstrates a few of these operators
-    """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    #### 9.1.2 String operators
-
-    Comparing strings:
-
-    * = (equality), != (inequality)
-    * < , <= \>, >= (lexical comparisons)
-    * substr IN string  (check for substring)
-
-    Comparing strings to regular expression patterns:
-
-    * mystring ~ regex (search regexp)
-    * regex ?~ mystring (same, inverted argument order)
-    * mystring !~ regex (inverse of ~, same as `NOT ( ... ~ ...)`)
-
-    Modifications:
-
-    * \+ (string concatentation)
-    """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    #### 9.1.3 Date operators
-
-    * =, !=, \<, \<=, \>, \>=  (comparisons)
-    * date BETWEEN start AND end (check date range)
-    * date + interval(str), date + int
-
-    /// details | how to use `date + interval(str)`
-
-    The BQL function `interval('...')` creates an object of type `relativedelta` that can be used to modify dates using the + operator. Example: `date + interval('2 weeks')`
-
-    Instead of `'week'`, you can use: day(s), month(s), year(s), decade(s), century/centuries.
-    """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    #### 9.1.4 Logical operators
-
-    Operators requiring or returning logical values:
-
-    * AND (logical conjunction)
-    * OR (logical disjunction)
-    * NOT (logical negation)
-    * IN (set membership)
-    * IS NULL (check if value is NULL)
-    """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    #### 9.1.5 Operators Example
+    For the purposes of the demonstration of operators further the following ledger will be used:
     """)
     return
 
@@ -1036,11 +943,76 @@ def _(ledger_editor):
     2023-02-03 * "Richard" "Shopping 2" #trip-london
       Expenses:Misc   20 USD
       Assets:Cash    -20 USD
+
+    2023-02-04 *  "Shopping 3" 
+      Expenses:Misc   20 USD
+      Assets:Cash    -20 USD
       """
 
     operators_ledger_ui = ledger_editor(_ledger, label="Ledger to demonstrate operators")
     operators_ledger_ui
     return (operators_ledger_ui,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### 9.1.1 Logical operators
+
+    Operators requiring or returning logical values:
+
+    * AND (logical conjunction)
+    * OR (logical disjunction)
+    * NOT (logical negation)
+    * IN (set membership)
+    * IS NULL (check if value is NULL), IS NOT NULL
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### 9.1.2 String operators
+
+    **Comparing strings:**
+
+    * = (equality), != (inequality)
+    * `<` , `<=`, `>`, `>=` ([lexical comparisons](https://www.geeksforgeeks.org/python/string-comparison-in-python]))  _?? What would be an example of any practical usage in beanquery_
+    * substr IN string  (check for substring)
+
+    **Comparing strings to regular expression patterns:**
+
+    * `mystring ~ regex` (case insensitive regexp)
+    * `regex ?~ mystring` (case sensitive regexp. Note, that it has inverted argument order !!!)
+    * `mystring !~ regex` (inverse of ~, same as `NOT ( ... ~ ...)`)
+
+    **Modifications:**
+
+    * \+ (string concatentation)
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT 
+         date, account, payee+' || '+narration as my_description, position
+    WHERE 
+          account ~ '^expenses'
+          AND "trip-london" IN tags
+          AND NOT payee = "John"
+    """
+    sql_ui_operators = query_editor(_sql, label=r"Operators demo regexp, IN, NOT, =, +")
+    sql_ui_operators
+    return (sql_ui_operators,)
+
+
+@app.cell
+def _(operators_ledger_ui, query_output, sql_ui_operators):
+    query_output(operators_ledger_ui.value, sql_ui_operators.value) 
+    return
 
 
 @app.cell
@@ -1049,18 +1021,61 @@ def _(query_editor):
     SELECT 
          date, account, payee,narration, position
     WHERE 
-          account ~ '^Expenses'
-          AND "trip-london" IN tags
-          AND NOT payee = "John"
+          NOT payee IS NOT NULL
+          and '^Expenses' ?~ account
     """
-    sql_ui_operators = query_editor(_sql, label=r"Operators demo query")
-    sql_ui_operators
-    return (sql_ui_operators,)
+    sql_ui_operators_not_null = query_editor(_sql, label=r"Operators demo with NOT NULL and case-sensitive regex")
+    sql_ui_operators_not_null
+    return (sql_ui_operators_not_null,)
 
 
 @app.cell
-def _(operators_ledger_ui, query_output, sql_ui_operators):
-    query_output(operators_ledger_ui.value, sql_ui_operators.value) 
+def _(operators_ledger_ui, query_output, sql_ui_operators_not_null):
+    query_output(operators_ledger_ui.value, sql_ui_operators_not_null.value) 
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT 
+         date, account, payee,narration, position
+    WHERE 
+          'Misc' IN account
+    """
+    sql_ui_operators_in_substring = query_editor(_sql, label=r"Operators substring")
+    sql_ui_operators_in_substring
+    return (sql_ui_operators_in_substring,)
+
+
+@app.cell
+def _(operators_ledger_ui, query_output, sql_ui_operators_in_substring):
+    query_output(operators_ledger_ui.value, sql_ui_operators_in_substring.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### 9.1.3 Numeric operators
+
+    * = (equality), != (inequality)
+    * < (less than), <= (less than or equal)
+    * \> (greater than), >= (greater than or equal)
+    * ... BETWEEN ... AND ... (check numeric range)
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### 9.1.4 Date operators
+
+    * `=`, `!=`, `<`, `<=`, `>`, `>=`  (comparisons)
+    * date BETWEEN start AND end (check date range)
+    * date + [interval(str)](#1225-intervalstr), date + int
+    """)
     return
 
 
@@ -1078,20 +1093,22 @@ def _(mo):
     The following types of constants can be entered in the beanquery expression
 
     * String: `'I am a string'`
+
+    /// details | **Avoid double quotes for strings**
+    Avoid the use of double quotes ("abc") for strings. Double quotes are meant to escape column names with
+    unorthodox names (like spaces) and are treated as literal strings only if no column of that name exists.
+    Using double quotes can lead to unexpected results in cases like `date_trunc("month", date)`. That call
+    is a syntax error, as `"month"` is converted to the month column (int) before the function is called and
+    is not forwarded to `date_trunc` as a string parameter.
+    ///
+
     * Date:  Dates are entered in `YYYY-MM-DD format without any quotes: SELECT * WHERE date < 2024-05-20..`
     * Integer: `1`
     * Boolean: `TRUE, FALSE`
     * Number:  `1.2`
     * Null object: `NULL`       ?? How can we use this NULL in practice?
     * ?? can we enter a set of strings constant in an expression?
-    
-    /// details | **Avoid double quotes for strings**
-    Avoid the use of double quotes ("abc") for strings. Double quotes are meant to escape column names with
-    unorthodox names (like spaces) and are treated as literal strings only if no column of that name exists.
-    Using double quotes can lead to unexpected results in cases like `date_trunc("month", date)`. That call
-    is a syntax error, as `"month"` is converted to the month column (int) before the function is called and
-    is not forwarded to `date_trunc` as a string parameter."""
-    )
+    """)
     return
 
 
@@ -2679,6 +2696,22 @@ def _(query_editor):
 @app.cell
 def _(ledger_root_func_ui, query_output, root_func_query_ui):
     query_output(ledger_root_func_ui.value, root_func_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### 12.2.5 INTERVAL(str)
+
+    The BQL function `interval('...')` creates an object of type `relativedelta` that can be used to modify dates using the **[+](#914-date-operators)** operator. Example: `date + interval('2 weeks')`
+
+    Instead of `'week'`, you can use: day(s), month(s), year(s), decade(s), century/centuries.
+
+    ?? I think this is not working yet
+
+    _#TODO: add practical examples_
+    """)
     return
 
 
