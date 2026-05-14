@@ -1,3 +1,5 @@
+# To create a PR
+
 The **Interactive beanquery manual** is using the `develop` branch for development.
 Therefore a [Pull Request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests) needs to be created gainst the `develop` branch, as this branch may be significantly ahead of the `main` branch, which is published to the [GitHib Pages](https://ev2geny.github.io/beanquery-interactive-manual/)
 
@@ -38,4 +40,23 @@ These are simple steps to do this
 
 
  
+# Release process
+
+## Update  HTML file for github pages
+1. Make sure you are on the `main` branch
+2. Murge latest changes from the `develop` branch
+3. Export marimo notebook to html file manually by 1st running the notebook and then using "Download as HTML" on the right top side.
+4. Rename the downloaded HTML file to index.html and save it to the directory `docs`
+5. commit changes
+6. push changes to github
+
+## Update notebook on the Molab cloud
+1. To go https://molab.marimo.io/notebooks and shutdown the notebook in question, if it is running.
+
+2. In molab go to edit mode and load a new version of the notebook via the file menu.
    
+![molab file upload](images/molab_upload.png)
+
+3. Via the file menu delete the old notebook.py file
+   
+4. Via the file menu rename the newly uploaded file to notebook.py
