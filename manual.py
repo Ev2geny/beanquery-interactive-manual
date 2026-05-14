@@ -39,16 +39,15 @@ def _():
 
     import marimo as mo
 
-    return Path, hashlib, io, json, mo, tomllib, urllib
+    return Path, hashlib, io, json, mo, urllib
 
 
 @app.cell(hide_code=True)
-def _(Path, mo, tomllib):
+def _(mo):
 
-    _pyproject_path = Path(__file__).parent / "pyproject.toml"
-    with open(_pyproject_path, "rb") as _f:
-        _version = tomllib.load(_f)["project"]["version"]
-    mo.md(f"*Version: {_version}*")
+    VERSION ="O.1.4.dev0"
+
+    mo.md(f"*Version: {VERSION}*")
     return
 
 
@@ -373,7 +372,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    This document assumes no prior knowledge of SQL and is structured as much as possible as a tutorial, where each chapter builds on the material covered in the previous ones. As a result, the material is more spread throughout the document than it would be if it were written for an SQL-familiar reader. For example, the available tables are introduced in one chapter, and more detailed information about some of them is added in several later chapters.
+    This document assumes no prior knowledge of SQL and is structured as much as practically possible as a tutorial, where each chapter builds on the material covered in the previous ones. As a result, the material is more spread throughout the document than it would be if it were written for an SQL-familiar reader. For example, the available tables are introduced in one chapter, and more detailed information about some of them is added in several later chapters.
 
     This document is written as a [marimo](https://docs.marimo.io/) notebook. You can read it as a normal HTML document.
     However, the cool feature of this notebook is that if you run it as a marimo notebook, you can interact with the document by changing the default text for both the ledger and the query in all examples. As soon as an input widget loses focus, the query is re-executed and the output is updated.
