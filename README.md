@@ -1,5 +1,13 @@
+
 # Interactive beanquery manual
 
+- [Interactive beanquery manual](#interactive-beanquery-manual)
+  - [1 How to open the manual](#1-how-to-open-the-manual)
+    - [1.1 As a static HTML file](#11-as-a-static-html-file)
+    - [1.1 To interact with the document, whilst reading](#11-to-interact-with-the-document-whilst-reading)
+      - [1.1.1 Option 1: From the Marimo Molab cloud](#111-option-1-from-the-marimo-molab-cloud)
+      - [1.1.2 Option 2: Locally on your PC](#112-option-2-locally-on-your-pc)
+  - [2 How to read the manual](#2-how-to-read-the-manual)
 
 This is an interactive manual and tutorial for [beanquery](https://github.com/beancount/beanquery) — a customizable, extensible, lightweight SQL-like query tool for [Beancount](https://github.com/beancount/beancount/) ledger data.
 
@@ -15,19 +23,18 @@ It was created with the following goals in mind:
 **Current state**: work is ongoing. 
 Comments, feedback and PRs are more than welcome!
 
-##  How to open the manual
+##  1 How to open the manual
 
-###  >As a static HTML file
+###  1.1 As a static HTML file
 
 As a static HTML file the manual can be read at the **[GitHub Pages](https://ev2geny.github.io/beanquery-interactive-manual/)**
 
-###  To interact with the document, whilst reading
+###  1.1 To interact with the document, whilst reading
 
-####  Option 1: From the Marimo Molab cloud
+####  1.1.1 Option 1: From the [Marimo Molab cloud](https://molab.marimo.io/notebooks/nb_hht9waEQnsrjBSRp5ZKGPu/app)
 
-1. Click on **[this](https://molab.marimo.io/notebooks/nb_hht9waEQnsrjBSRp5ZKGPu/app)** URL
    
-####  Option 2: Locally on your PC
+####  1.1.2 Option 2: Locally on your PC
 
 To be able to interact with the manual (to change queries, ledgers) one has to run it as a marimo notebook.
 To achieve this do the following:
@@ -45,7 +52,7 @@ To achieve this do the following:
    uv run marimo run manual.py
    ```
 
-##  How to read the manual
+##  2 How to read the manual
 
 Use the popping Table of Content on the right side to navigate the document
 
