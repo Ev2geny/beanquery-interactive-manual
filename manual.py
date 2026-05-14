@@ -318,7 +318,7 @@ def _(copy_data_from_github, runs_in_molab):
     if runs_in_molab():
         copy_data_from_github(
             repo="Ev2geny/beanquery-interactive-manual",
-            branch="develop",
+            branch="main",
             data=["images/", "custom.css"],
         )
 
