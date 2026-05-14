@@ -356,7 +356,7 @@ def _(mo):
     * to be self-documenting: all query outputs are computed by running beanquery as part of the notebook execution
     * to be interactive: when run as a [marimo](https://marimo.io/) notebook, readers can experiment by changing the default ledgers and/or queries, with outputs updating automatically
 
-    **Current state**: work is ongoing
+    **Current state**: work is ongoing, PRs are welcome!
     """)
     return
 
@@ -420,7 +420,7 @@ def _(mo):
 
     So one might ask: why create another SQL client? Why not output the data to an SQLite database and let the user use any SQL client? Apparently this experiment was conducted by creating [bean-sql](https://github.com/beancount/beancount/blob/v2/beancount/scripts/sql.py). It turned out that writing queries was painful and carrying out operations on lots held at cost was difficult.
 
-    Therefore beanquery has some extras that are essential for querying a Beancount ledger. These extras include (but are not necessarily limited to) the following:
+    Therefore, beanquery has some extras that are essential for querying a Beancount ledger. These extras include (but are not necessarily limited to) the following:
     * The client supports the semantics of inventory booking implemented in Beancount. It also supports aggregation functions on inventory objects and rendering functions (e.g., COST() to render the cost of an inventory instead of its contents).
     * The client supports some functions that run on postings but in the background also access other tables (e.g. the CONVERT() function, which formally operates on amounts, positions, or inventories, but in the background also uses the prices table).
     * It allows filtering at two levels simultaneously: you can filter whole transactions, which has the benefit of respecting the accounting equation, and then, usually for presentation purposes, you can also filter at the posting level.
@@ -459,7 +459,7 @@ def _(mo):
 @app.cell
 def _(mo):
     mo.md(r"""
-    To run beanquery type
+    To run beanquery, type:
 
     ```shell
     bean-query [OPTIONS] FILENAME [QUERY]...
@@ -489,7 +489,7 @@ def _(mo):
     beanquery>
     ```
 
-    You can also start beanquery as a python module
+    You can also start beanquery as a Python module:
 
     ```shell
     python -m beanquery [OPTIONS] FILENAME [QUERY]...
@@ -510,7 +510,7 @@ def _(mo):
     **Shell variables**
     The interactive shell has a few “set” variables that you can customize to change some of the behavior of the shell. These are like environment variables. Refer to the [Appendix A](#191-appendix-a-shell-variables) for more information.
 
-    Note, that in this document for demonstration purposes the following changes are done to default environmental variables:
+    Note, that in this document for demonstration purposes the following changes are made to the default environment variables:
 
     ```
     .set narrow false
@@ -861,7 +861,7 @@ def _(mo):
     mo.md(r"""
     Note, that here we use the wildcard symbol (*) to list some columns, instead of specifying column names manually.
 
-    Difference to SQL: the BQL using a wildcard as the target list (“*”) selects a good default list of columns, whilst the traditional SQL the * is used to describe the complete set of columns, available in the table.
+    Difference to SQL: in BQL using a wildcard as the target list (“*”) selects a good default list of columns, while in traditional SQL the `*` denotes the complete set of columns available in the table.
     """)
     return
 
@@ -902,11 +902,11 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    When we talked about the [SELECT](#8-select-query) query we mentioned, but not defined the notion of an expression. Let us correct this.
+    When we talked about the [SELECT](#8-select-query) query we mentioned but not define the notion of an expression. Let us correct this.
 
-    An **expression** is something, which can be evaluated to a value.
+    An **expression** is something, that can be evaluated to a value.
 
-    A **logical expression** is an expression, which can be evaluated to a  logical value (`TRUE` or `FALSE`)
+    A **logical expression** is an expression, that can be evaluated to a  logical value (`TRUE` or `FALSE`)
 
     In beanquery an expression is constructed by combining **table columns**, **constants**, **operators**, and **functions**. All of these elements are described later in this document.
     """)
@@ -918,7 +918,7 @@ def _(mo):
     mo.md(r"""
     ### 9.1 Operators
 
-    For the purposes of the demonstration of operators further the following ledger will be used:
+    Let us use the following ledger for the purposes of the demonstration of operators:
     """)
     return
 
@@ -1090,7 +1090,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    The following types of constants can be entered in the beanquery expression
+    The following types of constants can be entered in a beanquery expression
 
     * String: `'I am a string'`
 
@@ -1163,13 +1163,13 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    A full list of columns and functions, available to be used to construct expressions are available via the `.help XXX` command:
+    A full list of columns and functions available to construct expressions is available via the `.help XXX` command:
 
     * To get a help for the `SELECT` clause expressions type `.help targets`
     * To get a help for the `FROM` clause expressions type `.help FROM`
     * To get a help for the `WHERE` clause expressions type `.help WHERE`
 
-    So, let us reiterate: the previously discussed `.describe <table name>` provides columns, available in a particular table. This command can be used for every table. The `.help [targets | FROM | where]` on the other hand returns both columns as  well as functions, but only for transactions and postings. To make things even more confusing, note that when it comes to the transactions table, then probably due to the [bug](https://github.com/beancount/beanquery/issues/277) the `.help FROM` command makes available few more columns for the transactions table, than are available via the [`.describe transactions`](#6-available-tables-introduction) command. E.g. the [id](#1021-the-id-column) column.
+    So, let us reiterate: the previously discussed `.describe <table name>` provides the columns available in a given table. This command can be used for every table. The `.help [targets | FROM | where]` on the other hand returns both columns as  well as functions, but only for transactions and postings. To make things even more confusing, note that when it comes to the transactions table, then probably due to the [bug](https://github.com/beancount/beanquery/issues/277) the `.help FROM` command lists a few more columns for the transactions table, than are available via the [`.describe transactions`](#6-available-tables-introduction) command, e.g. the [id](#1021-the-id-column) column.
 
     Example (reduced):
 
@@ -1210,9 +1210,9 @@ def _(mo):
     ...
     ```
 
-    Note, that the list of table columns (in this example the list of table columns in the transactions table), available via the `.help from` command is broader, then the list of columns available for the same table via the `.describe <table-name>`.
+    Note that the list of table columns (in this example the list of table columns in the transactions table), available via the `.help from` command is broader, than the list of columns available for the same table via the `.describe <table-name>`.
 
-    E.g. in this case the `.describe transactions` does not list the `id` and some other columns, otherwise available for the `FROM ...` clause
+    E.g. in this case  `.describe transactions` does not list the `id` and some other columns, otherwise available for the `FROM ...` clause
 
     ```text
     beanquery> .describe transactions
@@ -1261,7 +1261,7 @@ def _(mo):
 @app.cell
 def _(mo):
     mo.md(r"""
-    As it was already mentioned, the beanquery was originally created to work with the postings table only, therefore the postings table has some notable and sometimes unexpected features
+    As was already mentioned, beanquery was originally created to work with the postings table only, therefore the postings table has some notable and sometimes unexpected features
     """)
     return
 
@@ -1292,9 +1292,9 @@ def _(files_downloaded, mo):
 @app.cell
 def _(mo):
     mo.md(r"""
-    The contents of a ledger is parsed into a list of directives, most of which are “Transaction” objects which contain two or more “Posting” objects. Postings are always linked only to a single transaction (they are never shared between transactions). Each posting refers to its parent transaction but has a unique account name, amount and associated lot (possibly with a cost), a price and some other attributes. The parent transaction itself contains a few useful attributes as well, such as a date, the name of a payee, a narration string, a flag, links, tags, etc.
+    The content of a ledger is parsed into a list of directives, most of which are “Transaction” objects which contain two or more “Posting” objects. Postings are always linked only to a single transaction (they are never shared between transactions). Each posting refers to its parent transaction but has a unique account name, amount and associated lot (possibly with a cost), a price and some other attributes. The parent transaction itself contains a few useful attributes as well, such as a date, the name of a payee, a narration string, a flag, links, tags, etc.
 
-    So, one can think that attributes such as **date** or **narration** belong to the transaction object, whilst attributes like **account** belong to the posting object. However (probably for simplicity) all of the transaction-level fields are also made available in the posting objects (the only exception being the transaction meta, which is not available from the posting). One can check this by comparing the outputs of the **`.describe postings`** and **`.describe transactions`** commands.
+    So, one might think that attributes such as **date** or **narration** belong to the transaction object, while attributes like **account** belong to the posting object. However (probably for simplicity) all of the transaction-level fields are also made available in the posting objects (the only exception being the transaction meta, which is not available from the posting). One can check this by comparing the outputs of the **`.describe postings`** and **`.describe transactions`** commands.
 
     So, from the beanquery data model the diagram looks more like this
     """)
@@ -1402,7 +1402,7 @@ def _(mo):
     mo.md(r"""
     We can see that the field `date` can be used both within the FROM clause (transaction-level filter) and the WHERE clause (postings-level filter). This is despite the fact that, logically speaking, the `date` column should be a transaction-level field only.
 
-    **Conclusion:** at the moment there seems to be [little reason](https://groups.google.com/g/beancount/c/HVK3_6p1FjM) to use the FROM clause transaction level-filtering in the SELECT query, as everything can be done in the WHERE part
+    **Conclusion:** at the moment in a SELECT query there seems to be [little reason](https://groups.google.com/g/beancount/c/HVK3_6p1FjM) to use transaction-level filtering, provided by the `FROM` clause , since everything can be done in the `WHERE` clause.
     """)
     return
 
@@ -1502,7 +1502,7 @@ def _(mo):
 @app.cell
 def _(mo):
     mo.md(r"""
-    The `other_accounts` column is another notable column in the postings table. It contains the set of accounts from other postings in the same transaction.
+    The `other_accounts` column is another notable column in the postings table. It contains a set of accounts from other postings in the same transaction.
 
     Example:
     """)
@@ -1646,9 +1646,9 @@ def _(balance_ledger_ui, query_output, sql_ui_balance):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Note, that the beanquery starts counting balance from 0 and takes into account all postings, which pass through the filter. Therefore if the goal is to have a bank equivalent balance information, then one shall not put any filters, which would filter out any postings to the bank account account. E.g. if we put a filter to start later, then the result would be different.
+    Note, that beanquery starts counting the balance from 0 and takes into account all postings, that pass through the filter. Therefore if the goal is to have bank-equivalent balance information, then one shall not put any filter that would filter out any postings to the bank account. E.g. if we put a filter to start later, then the result would be different.
 
-    Also selecting more than 1 bank account would create a result, different from what you get from your bank statement:
+    Also selecting more than one bank account would create a result different from what you get from your bank statement:
     """)
     return
 
@@ -1707,7 +1707,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    The column shows the “weight” of postings, which beancount internally uses to balance the transaction. Refer to the [Beancount - Language Syntax](https://docs.google.com/document/d/1wAMVrKIA2qtRGmoVDSUBJGmYZSygUaR0uOMW1GV3YE0) document for more information.
+    The column shows the “weight” of postings, which Beancount internally uses to balance the transaction. Refer to the [Beancount - Language Syntax](https://docs.google.com/document/d/1wAMVrKIA2qtRGmoVDSUBJGmYZSygUaR0uOMW1GV3YE0) document for more information.
     """)
     return
 
@@ -1730,7 +1730,7 @@ def _(ledger_editor):
       Assets:Investment    20 IVV {10 USD} @@ 300 USD
     """
 
-    weight_ledger_ui = ledger_editor(_ledger, label="Ledger to demonstrate weigh column")
+    weight_ledger_ui = ledger_editor(_ledger, label="Ledger to demonstrate the weight column")
     weight_ledger_ui
     return (weight_ledger_ui,)
 
@@ -1763,15 +1763,15 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    The meta field returns a dictionary with a postings-level meta data. This includes:
+    The meta field returns a dictionary with postings-level metadata. This includes:
     1. user-provided meta, parsed from the beancount file
     2. several beancount - generated meta fields
-       * `filename`: filename of the file, where posting was parsed from
-       * `lineno`: line number in that file
-       * `__automatic__`: (optional) a flas to show whether the posting was auto-inserted to complete the transaction
-       * ?? - any other auto-inserted meta?
+       * `filename`: the filename of the file where the posting was parsed from
+       * `lineno`: the line number in that file
+       * `__automatic__`: (optional) a flag to show whether the posting was auto-inserted to complete the transaction
+       * ??  any other auto-inserted meta?
 
-    To access the meta field access it as a dictionary using the `meta['meta-field-name']` notation.
+    To access the meta field treat it as a dictionary using the `meta['meta-field-name']` notation.
 
     Example:
     """)
@@ -1840,7 +1840,7 @@ def _(mo):
     A special column exists that identifies each transaction uniquely: “id”. It is a unique hash automatically computed from the transaction and should be stable between runs.
     This hash is derived from the contents of the transaction object itself (if you change something about the transaction, e.g. you edit the narration, the id will change).
 
-    Note: even though the `id` field logically belongs to the transaction, it is not available in the `transactions` table via the `.describe transactions` command (an [issue](https://github.com/beancount/beanquery/issues/277) has been raised about this). The only way to find it is to look in postings via traditional query.
+    Note: even though the `id` field logically belongs to the transaction, it is not available in the `transactions` table via the `.describe transactions` command (an [issue](https://github.com/beancount/beanquery/issues/277) has been raised about this). The only way to find it is to look in the postings using a traditional query.
     """)
     return
 
@@ -1864,7 +1864,7 @@ def _(ledger_editor):
       Assets:Cash
       """
 
-    ledger_id_ui = ledger_editor(_ledger, label="Simple ledger for to test id column")
+    ledger_id_ui = ledger_editor(_ledger, label="Simple ledger to test id column")
     ledger_id_ui
     return (ledger_id_ui,)
 
@@ -1888,7 +1888,7 @@ def _(ledger_id_ui, query_output, sql_ui_id_postings):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Once the `id` field is known, one can use it also for the transaction - level filtering.  E.g. one can use the [`PRINT` query](#153-print-print-query) (discussed later) to print the specific entry. This can be useful during debugging.
+    Once the `id` field is known, one can use it also for transaction-level filtering.  E.g. one can use the [`PRINT` query](#153-print-print-query) (discussed later) to print a specific entry. This can be useful during debugging.
     """)
     return
 
@@ -1923,7 +1923,7 @@ def _(query_editor):
     SELECT sum(position) WHERE account = 'Expenses:Food' AND id != '6b634369dafa012b83e63be8be0c18bb'
     """
 
-    sql_exclude_id = query_editor(_sql, label="Exclude specific entry by id from aggregate function")
+    sql_exclude_id = query_editor(_sql, label="Exclude a specific entry by id from an aggregate function")
     sql_exclude_id
     return (sql_exclude_id,)
 
@@ -1945,11 +1945,11 @@ def _(mo):
 @app.cell
 def _(mo):
     mo.md(r"""
-    From everything mentioned above one can probably make the following practical conclusions on usage of the SELECT query in beancount.
+    From everything mentioned above one can probably make the following practical conclusions on usage of the SELECT query in Beancount.
 
-    * use traditional form of the beanquery query on postings
+    * use the traditional form of the beanquery query on postings
     * use the #table form for all other tables
-    * no particular need to use the **FROM** - clause filtering in the SELECT query, as all the fields are also available for the **WHERE** clause
+    * there is no particular need to use the **FROM**-clause filtering in the SELECT query, as all the fields are also available for the **WHERE** clause
 
     ?? Are these conclusions correct?
     """)
@@ -1967,9 +1967,9 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    The shell provides a list of simple function that operate on a single data column and return a new value. These functions operate on particular types. The shell implements rudimentary type verification and should be able to warn you on incompatible types.
+    The shell provides a list of simple functions that operate on a single data column and return a new value. These functions operate on particular types. The shell implements rudimentary type verification and should be able to warn you about incompatible types.
 
-    List of functions, available to be used in the `SELECT` expression can be obtained using the `.help targets` command. List of functions, available to be used in the expression of the `FROM` and `WHERE` clause can be obtained using the `.help from` and `.help where` respectively. E.g.:
+    A list of functions, available to be used in the expression of the `FROM` and `WHERE` clause can be obtained using the `.help from` and `.help where` respectively. E.g.:
 
     ```text
     beanquery> .help targets
@@ -2026,8 +2026,8 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    The `SELECT` clause (and only the `SELECT clause`) allows usage of the called **Aggregate functions**, in addition to the ordinary Functions.
-    The **Aggregate functions** operate on more than a single row. These functions aggregate and summarize the multiple values for the data column that they operate on.
+    The `SELECT` clause (and only the `SELECT` clause) allows the usage of so-called **Aggregate functions**, in addition to ordinary functions.
+    **Aggregate functions** operate on more than a single row. These functions aggregate and summarize multiple values for the data column that they operate on.
 
     Examples of aggregate functions include:
     * `COUNT(...)`: Computes the number of postings selected (an integer).
@@ -2035,7 +2035,7 @@ def _(mo):
     * `MIN(...)`, `MAX(...)`: Computes the minimum or maximum value seen.
     * `SUM(...)`: Sums up the values of each set. This works on amounts, positions, inventories, numbers, etc.
 
-    A usage of at least one of the aggregate function turns a query into the **Aggregate Query**. An **Aggregate query** is a query, which produces a row of results for each group of postings that match the restricts in the `WHERE` clause.  In order to identify the aggregation keys in a **classical SQL** all the non-aggregate columns have to be flagged using the GROUP BY clause:
+    Usage of at least one of aggregate function turns a query into an **Aggregate Query**. An **Aggregate query** is a query, that produces a row of results for each group of postings that match the restrictions in the `WHERE` clause.  In order to identify the aggregation keys in **classical SQL** all the non-aggregate columns have to be flagged using the GROUP BY clause:
 
     Example:
     """)
@@ -2075,7 +2075,7 @@ def _(ledger_editor):
       Assets:Cash    -50 USD
     """
 
-    agg_ledger_ui = ledger_editor(_ledger, label="Ledger for aggregate functions demo")
+    agg_ledger_ui = ledger_editor(_ledger, label="Ledger for an aggregate functions demo")
     agg_ledger_ui
     return (agg_ledger_ui,)
 
@@ -2212,11 +2212,11 @@ def _(mo):
     sum(position)
       Calculate the sum of the position. The result is an Inventory.
     ```
-    The usage of the `SUM()` function for a simple case is already demonstrated in the **Aggregate Functions** section.
+    Usage of the `SUM()` function for a simple case is already demonstrated in the **Aggregate Functions** section.
 
-    Let us apply the `sum()` function to the more complex ledger with lots, tracked at cost and to different commodities.
+    Let us apply the `sum()` function to a more complex ledger with lots, tracked at cost and with different commodities.
 
-    Note: for illustrative purposes on the right sit the same ledger is printed using the PRINT query command to show the full internal representation of the lot cost (with the cost date and the cost label. E.g. 1 IVV {10 USD, **2023-01-11}**`)
+    Note: for illustrative purposes on the right side the same ledger is printed using the PRINT query command to show the full internal representation of the lot cost (with the cost date and the cost label. E.g. 1 IVV {10 USD, **2023-01-11}**`)
     """)
     return
 
@@ -2298,7 +2298,7 @@ def _(mo):
     Observe that:
 
     * the sum of positions is an inventory<br>
-      note, that the way resulting inventory (the sum of positions) is displayed in beanquery may be is a bit confusing, as the cost date cost and label are not displayed (see [this](https://groups.google.com/g/beancount/c/jdNCyhyq3Ug) discussion).
+      note, that the way the resulting inventory (the sum of positions) is displayed in beanquery may be a bit confusing, as the cost date cost and label are not displayed (see [this](https://groups.google.com/g/beancount/c/jdNCyhyq3Ug) discussion).
       The more complete representation would be :
 
     ```text
@@ -2353,7 +2353,7 @@ def _(mo):
       Get the number of units of an inventory (stripping cost).
     ```
 
-    Let us see results of these functions on the same ledger, which was used to demonstrate the `SUM()` function.
+    Let us see the results of these functions on the same ledger, that was used to demonstrate the `SUM()` function.
     """)
     return
 
@@ -2380,10 +2380,10 @@ def _(mo):
     mo.md(r"""
     Observe that:
 
-    * the `cost()` function always returns some result, even in case the position is not "held at cost".  In case there is no cost, the cost function returns units.
+    * the `cost()` function always returns some result, even in cases where the position is not "held at cost".  In cases where is no cost, the cost function returns units.
     * the `cost()` function only returns a cost amount (decimal number and commodity), without the cost date and label
 
-    Both the `cost()` and `units()` functions can operate on positions as well as on inventories. That means, that one can apply these functions either to columns or to the output of the `sum()` function in the aggregate query.  Let us demonstrate this on the same ledger, which was used for the `SUM()` function demo:
+    Both the `cost()` and `units()` functions can operate on positions as well as on inventories. That means one can apply these functions either to columns or to the output of the `sum()` function in an aggregate query.  Let us demonstrate this on the same ledger, that was used for the `SUM()` function demo:
     """)
     return
 
@@ -2638,7 +2638,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    The `ROOT(account_name: str, n: int =1)` function returns the 1st **n** parts from the left of the account name. The default value of the **n** argument is 1.
+    The `ROOT(account_name: str, n: int =1)` function returns the first **n** parts from the left of the account name. The default value of the **n** argument is 1.
 
     E.g. `root("Expenses:Shopping:Misc", 2)` returns `Expenses:Shopping`
 
@@ -2808,7 +2808,7 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     The shell provides a few operators designed to facilitate the generation of balance sheets and income statements. The particular methodology used to define these operations should be described in detail in the [“introduction to double-entry bookkeeping”](https://docs.google.com/document/d/100tGcA4blh6KSXPRGCZpUlyxaRUwFHEvnz_k9DyZFn4/edit?usp=sharing) document that accompanies Beancount and is mostly located in the source code in the [summarize](https://github.com/beancount/beancount/blob/master/beancount/ops/summarize.py) module.
-    These special operators are provided on the FROM clause that is made available on the various forms of query commands in the shell. These further transform the set of entries selected by the FROM expression at the transaction levels (not postings).
+    These special operators are provided on the FROM clause that is made available on the various forms of query commands in the shell. These further transform the set of entries selected by the FROM expression at the transaction level (not postings).
     Please note that these are not from standard SQL; these are extensions provided by this shell language only.
 
     For demonstrations let us use the following ledger (borrowed with some changes from the [summarize_test](https://github.com/beancount/beancount/blob/master/beancount/ops/summarize_test.py))
@@ -2866,7 +2866,7 @@ def _(ledger_editor):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 14.0.1 Opening a Period (OPEN ON clause)
+    #### 14.1 Opening a Period (OPEN ON clause)
     """)
     return
 
@@ -2874,7 +2874,7 @@ def _(mo):
 @app.cell
 def _(mo):
     mo.md(r"""
-    Opening an exercise period at a particular date replaces all entries before that date by summarization entries that book the expected balance against an Equity “opening balances” account and implicitly clears the income and expenses to zero by transferring their balances to an Equity “previous earnings” account (see beancount.ops.summarize.open() for implementation details)
+    Opening an exercise period at a particular date replaces all entries before that date with summarization entries that book the expected balance against an Equity “opening balances” account and implicitly clears the income and expenses to zero by transferring their balances to an Equity “previous earnings” account (see beancount.ops.summarize.open() for implementation details)
     """)
     return
 
@@ -2907,7 +2907,7 @@ def _(ledger_ui_open_close, mo, query_output, sql_ui_print_open):
 @app.cell
 def _(mo):
     mo.md(r"""
-    To make it more demonstrative, let's compare balances of accounts on the date before 2012-08-01  without and with OPEN ON 2012-08-01 clause
+    To make it more demonstrative, let's compare balances of accounts on the date before 2012-08-01  without and with the  `OPEN ON 2012-08-01` clause
     """)
     return
 
@@ -2986,7 +2986,7 @@ def _(
 @app.cell
 def _(mo):
     mo.md(r"""
-    One can see that balances on Assets and Liabilities did not change, but Income and Expenses were summarized into Equity:Earnings:Previous.
+    One can see that the balances on Assets and Liabilities did not change, but Income and Expenses were summarized into Equity:Earnings:Previous.
     """)
     return
 
@@ -2994,7 +2994,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 14.0.2 Closing a Period (CLOSE ON clause)
+    #### 14.2 Closing a Period (CLOSE ON clause)
     """)
     return
 
@@ -3053,7 +3053,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 14.0.3 Clearing Income & Expenses (CLEAR clause)
+    #### 14.3 Clearing Income & Expenses (CLEAR clause)
     """)
     return
 
@@ -3061,7 +3061,7 @@ def _(mo):
 @app.cell
 def _(mo):
     mo.md(r"""
-    In order to produce a balance sheet, we need to transfer final balances of the Income and Expenses to an Equity “current earnings” account (sometimes called “retained earnings” or “net income”; you can select the specific account name to use using options in the input file). The resulting balances of income statement accounts should be zero (see beancount.ops.summarize.clear() for implementation details).
+    In order to produce a balance sheet, we need to transfer the final balances of the Income and Expenses to an Equity “current earnings” account (sometimes called “retained earnings” or “net income”; you can select the specific account name to use using options in the input file). The resulting balances of income statement accounts should be zero (see beancount.ops.summarize.clear() for implementation details).
     """)
     return
 
@@ -3071,7 +3071,7 @@ def _(query_editor):
     _sql = """\
     PRINT FROM CLEAR
     """
-    sql_ui_clear = query_editor(_sql, label="Let us use PRINT statement to demonstrate how CLEAR converts the ledger")
+    sql_ui_clear = query_editor(_sql, label="Let us use the PRINT statement to demonstrate how CLEAR converts the ledger")
     return (sql_ui_clear,)
 
 
@@ -3161,7 +3161,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 14.0.4 Example Statements
+    #### 14.4 Example Statements
     """)
     return
 
@@ -3169,7 +3169,7 @@ def _(mo):
 @app.cell
 def _(mo):
     mo.md(r"""
-    The statement operators of course may be combined. For instance, if you wanted to output data for an income statement for year 2012, you could issue the following statement:
+    The statement operators may, of course, be combined. For instance, if you wanted to output data for an income statement for year 2012, you could issue the following statement:
     """)
     return
 
@@ -3439,7 +3439,7 @@ def _(
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ?? Seems that the SELECT ... WHERE  offers the same functionality, but with a better flexibility. E.g. it is also possible to filter spesific accounts, and / or apply the root() function to accounts.
+    ?? It seems that the `SELECT ... WHERE`  offers the same functionality, but with a better flexibility. E.g. it is also possible to filter specific accounts, and / or apply the [`root()`](#1224-root) function to accounts.
 
     E.g.: would it be possible to do the following with the BALANCES query, where we select balances only for assets?
     """)
@@ -3566,7 +3566,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    This section collects example of queries to be used in different practical situations
+    This section collects examples of queries to be used in different practical situations
 
     _#TODO: don't by shy to add lots  of examples_
     """)
@@ -3610,9 +3610,9 @@ def _(mo):
     mo.md(r"""
     A couple of things to note:
 
-    * The `description` field conveniently combines the `payee` and `narration` fields, split by a space-padded pipe ' | '
-    * `other_accounts` gives the accounts from the other postings on the parent transaction, similarly split by ' | '
-        * In this particular example, the other accounts would typically be the payment methods used
+    * The `description` field conveniently combines the `payee` and `narration` fields, separated by a space-padded pipe ' | '
+    * `other_accounts` gives the accounts from the other postings on the parent transaction, similarly separated by ' | '
+    * In this particular example, the other accounts would typically be the payment methods used
     """)
     return
 
@@ -3674,9 +3674,9 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    One of the typical situations is when some (or all) of Income and  Expenses are done in one currency, but reporting has to be done in another currency. Throughout the accounting period one currency fluctuates against another currency.
+    One of the typical situations is when some (or all) of Income and  Expenses are in one currency, but reporting has to be done in another currency. Throughout the accounting period one currency fluctuates against another currency.
 
-    E.g.: let us look at the situation when Income and Expenses are in one currency (TUG), but reporting has to be done in USD. Throughout the accounting period the value of TUG drops from 1 USD to 0.25 USD.
+    E.g.: let us look at a situation when Income and Expenses are in one currency (TUG), but reporting has to be done in USD. Throughout the accounting period the value of TUG drops from 1 USD to 0.25 USD.
     """)
     return
 
@@ -3732,7 +3732,7 @@ def _(mo):
     mo.md(r"""
     Note that, following accepted accounting practices, **Assets** and **Liabilities** are translated into the reporting currency using the exchange rate in effect on the date of the **Net Worth report**. For instance, to determine the current value of your bitcoins, you need to know only your current bitcoin holdings and the current bitcoin price, not the various exchange rates at which you bought them in the past.
 
-    So, broken by accounts the Net-Worth-like report for Y2023 could look like this (for illustration purpose let us also add a column in the original currency):
+    So, broken down by accounts the Net-Worth-like report for Y2023 could look like this (for illustration purpose let us also add a column in the original currency):
     """)
     return
 
@@ -3763,10 +3763,10 @@ def _(
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    For P&L -like report, inline with accepted accounting practices  **Income**, **Expenses**, and **Liabilities** are translated into the reporting currency using the exchange rate in effect on the transaction date (in contrast to the Net Worth report, which uses the exchange rate on the report date).
+    For P&L-like report, in line with accepted accounting practices  **Income**, **Expenses**, and **Liabilities** are translated into the reporting currency using the exchange rate in effect on the transaction date (in contrast to the Net Worth report, which uses the exchange rate on the report date).
     Thus, for example, if you purchased an item for 60 Turkish lira while on vacation in Turkey when 60 lira equaled 2 USD, it will remain 2 USD in the P&L report, regardless of subsequent exchange rate fluctuations.
 
-    So, the P&L -like report could look like this (for illustration purpose let us also add a column in the original currency):
+    So, a P&L-like report could look like this (for illustrative purposes let us also add a column in the original currency):
     """)
     return
 
@@ -3834,10 +3834,10 @@ def _(
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Observe, that in this case the P&L report (1750 USD) does not explain the change in the Net Worth in Y2023 (0 USD => 750 USD). However the P&L in TUG (3000 TUG) does explain the change in the Net Worth (3000 TUG).
+    Observe, that in this case the P&L report (1750 USD) does not explain the change in Net Worth in Y2023 (0 USD => 750 USD). However the P&L in TUG (3000 TUG) does explain the change in Net Worth (3000 TUG).
 
     This is expected and is happening, because the value of TUG was constantly dropping throughout the year against USD.
-    To be able to do the Net Worth reconciliation in the reporting currency (USD in this case) one has to take into account unrealized gains / losses due exchange rate changes (e.g. using the [sing_curr_conv](https://github.com/Ev2geny/evbeantools/blob/main/docs/sing_curr_conv.md) tool).
+    To be able to do the Net Worth reconciliation in the reporting currency (USD in this case) one has to take into account unrealized gains/losses due to exchange rate changes (e.g. using the [sing_curr_conv](https://github.com/Ev2geny/evbeantools/blob/main/docs/sing_curr_conv.md) tool).
     """)
     return
 
@@ -3861,7 +3861,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    The interactive shell has a few “set” variables that you can customize to change some of the behavior of the shell. These are like environment variables. Type the `.set` command to see the list of available variables and their current value.
+    The interactive shell has a few “set” variables that you can customize to change some of the behavior of the shell. These are like environment variables. Type the `.set` command to see the list of available variables and their current values.
 
     The variables are:
 
