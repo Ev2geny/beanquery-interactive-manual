@@ -10,7 +10,7 @@
 
 import marimo
 
-__generated_with = "0.23.3"
+__generated_with = "0.23.5"
 app = marimo.App(width="medium", css_file="custom.css")
 
 
@@ -1073,8 +1073,9 @@ def _(mo):
     #### 9.1.4 Date operators
 
     * `=`, `!=`, `<`, `<=`, `>`, `>=`  (comparisons)
-    * date BETWEEN start AND end (check date range)
-    * date + [interval(str)](#1225-intervalstr), date + int
+    * date BETWEEN start AND end (check date range, inclusive date range)
+    * date +/- [interval(str)](#1225-intervalstr)
+    * date +/- int  (the same as `date +/- interval('<int> days')`)
     """)
     return
 
@@ -2704,13 +2705,16 @@ def _(mo):
     mo.md(r"""
     #### 12.2.5 INTERVAL(str)
 
-    The BQL function `interval('...')` creates an object of type `relativedelta` that can be used to modify dates using the **[+](#914-date-operators)** operator. Example: `date + interval('2 weeks')`
+    The BQL function `interval('...')` creates an object of type `relativedelta` that can be used to modify dates using the **[+/-](#914-date-operators)** operator. Example: `date - interval('2 month')`.
+    (plural s can be appended)
 
-    Instead of `'week'`, you can use: day(s), month(s), year(s), decade(s), century/centuries.
+    Instead of `month`, you can use: `day(s)`, `year(s)`, and, once the [PR280](https://github.com/beancount/beanquery/pull/280) is accepted, also `week(s)`, `decade(s)`, `century/centuries`
 
-    ?? I think this is not working yet
+    This, for instance, can be used to select all expenses for the last 4 months:
 
-    _#TODO: add practical examples_
+    ```sql
+    SELECT * WHERE date >= today() - interval('4 month')
+    ```
     """)
     return
 
