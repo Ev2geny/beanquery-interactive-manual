@@ -10,7 +10,7 @@
 
 import marimo
 
-__generated_with = "0.23.5"
+__generated_with = "0.23.6"
 app = marimo.App(width="medium", css_file="custom.css")
 
 
@@ -684,10 +684,10 @@ def _(mo):
     mo.md(r"""
     Beanquery supports the following types of queries, further discussed in this document:
 
-    * SELECT
-    * BALANCES
-    * JOURNAL
-    * PRINT
+    * [SELECT](#8-select-query)
+    * [BALANCES](#152-selecting-balances-balances-query)
+    * [JOURNAL](#151-selecting-journals-journal-query)
+    * [PRINT](#153-print-print-query)
     """)
     return
 
