@@ -51,3 +51,7 @@ The following files can be used for references:
 ## Improving English language style guide:
 
 - Do not remove ?? and #TODO from the text, when asked to improve English, as these are deliberately left there
+
+## Query style  guide:
+
+- Use single quotes for strings (e.g. `^ 'Expenses'` and not `^ "Expenses"` )

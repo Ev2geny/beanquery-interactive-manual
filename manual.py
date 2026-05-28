@@ -2721,6 +2721,137 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    #### 12.2.6 DATE_BIN()
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Introduced in beanquery commit [`51ad2619`](https://github.com/beancount/beanquery/commit/51ad2619acf787845b149b6330defb99ee33366b) (Nov 2024).
+
+    ```text
+    date_bin(stride, source, origin)
+    ```
+    Is a function for rounding timestamps down into fixed-width intervals, called the `stride`, aligned to an `origin`. It is similar to SQL's `date_bin()` but extended to accept strides with units of months and years (which have variable length). The function is particularly useful with `GROUP BY` to aggregate postings by week, month, quarter, fiscal year, or any other custom-aligned period.
+
+    * `stride` — either an [`interval`](#1225-intervalstr) (e.g. `interval('1 month')`) or a string accepted by `interval()` (e.g. `'1 month'`, `'3 days'`, `'1 year'`).
+    * `source` — the date to be binned.
+    * `origin` — any date that defines the alignment of the bins. The origin does **not** have to be earlier than `source`; bins extend in both directions.
+
+    Quick reference:
+
+    | Call | Result | Why |
+    |---|---|---|
+    | `date_bin('1 year', 2024-11-10, 2024-06-01)` | `2024-06-01` | Yearly bins from Jun 1. Nov 10 falls in the bin `[2024-06-01, 2025-06-01)`. |
+    | `date_bin('1 year', 2024-11-10, 2025-06-01)` | `2024-06-01` | Origin is in the future — bins still extend backward. |
+    | `date_bin('1 month', 2024-11-10, 2024-06-03)` | `2024-11-03` | Monthly bins aligned to day 3. Nov 10 → `[Nov 3, Dec 3)`. |
+    | `date_bin('3 days', 2024-11-10, 2024-11-02)` | `2024-11-08` | 3-day bins starting Nov 2: Nov 2, 5, 8, 11. Nov 10 → bin starting Nov 8. |
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Assets:Bank
+    2023-01-01 open Expenses:Food
+    2023-01-01 open Expenses:Travel
+
+    2023-01-10 * "Groceries"
+      Expenses:Food     120 USD
+      Assets:Bank      -120 USD
+
+    2023-02-05 * "Restaurant"
+      Expenses:Food      80 USD
+      Assets:Bank       -80 USD
+
+    2023-03-20 * "Train tickets"
+      Expenses:Travel   300 USD
+      Assets:Bank      -300 USD
+
+    2023-05-15 * "Groceries"
+      Expenses:Food     150 USD
+      Assets:Bank      -150 USD
+
+    2023-08-02 * "Hotel"
+      Expenses:Travel   500 USD
+      Assets:Bank      -500 USD
+
+    2023-11-25 * "Groceries"
+      Expenses:Food     200 USD
+      Assets:Bank      -200 USD
+
+    2024-02-14 * "Restaurant"
+      Expenses:Food     100 USD
+      Assets:Bank      -100 USD
+    """
+
+    date_bin_ledger_ui = ledger_editor(_ledger, label="Ledger for DATE_BIN() demo")
+    date_bin_ledger_ui
+    return (date_bin_ledger_ui,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **Example 1** — monthly aggregation, aligned to the start of each calendar month:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date_bin('3 months', date, 2023-01-01) AS quarter_start,
+           sum(position)
+    WHERE account ~ '^Expenses'
+    GROUP BY 1
+    ORDER BY 1
+    """
+    date_bin_month_query_ui = query_editor(_sql, label="DATE_BIN() — quarterly bins")
+    date_bin_month_query_ui
+    return (date_bin_month_query_ui,)
+
+
+@app.cell
+def _(date_bin_ledger_ui, date_bin_month_query_ui, query_output):
+    query_output(date_bin_ledger_ui.value, date_bin_month_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **Example 2** — fiscal-year aggregation, aligned to a custom origin (here, April 1). This is something that the standard `year()` function cannot do, since it always uses the calendar year.
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date_bin('1 year', date, 2023-04-01) AS fiscal_year_start,
+           sum(position)
+    WHERE account ~ '^Expenses'
+    GROUP BY 1
+    ORDER BY 1
+    """
+    date_bin_fy_query_ui = query_editor(_sql, label="DATE_BIN() — fiscal-year bins")
+    date_bin_fy_query_ui
+    return (date_bin_fy_query_ui,)
+
+
+@app.cell
+def _(date_bin_fy_query_ui, date_bin_ledger_ui, query_output):
+    query_output(date_bin_ledger_ui.value, date_bin_fy_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 13 Controlling query results
     """)
     return
