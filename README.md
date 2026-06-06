@@ -3,10 +3,9 @@
 
 - [Interactive beanquery manual](#interactive-beanquery-manual)
   - [1 How to open the manual](#1-how-to-open-the-manual)
-    - [1.1 As a static HTML file](#11-as-a-static-html-file)
-    - [1.1 To interact with the document, whilst reading](#11-to-interact-with-the-document-whilst-reading)
-      - [1.1.1 Option 1: From the Marimo Molab cloud](#111-option-1-from-the-marimo-molab-cloud)
-      - [1.1.2 Option 2: Locally on your PC](#112-option-2-locally-on-your-pc)
+    - [1.1 As a static HTML file in the **GitHub Pages**](#11-as-a-static-html-file-in-the-github-pages)
+    - [1.2 As an online interactive manual in the **Marimo Molab cloud**](#12-as-an-online-interactive-manual-in-the-marimo-molab-cloud)
+    - [1.2 As an interactive manual locally on your PC](#12-as-an-interactive-manual-locally-on-your-pc)
   - [2 How to read the manual](#2-how-to-read-the-manual)
 
 This is an interactive manual and tutorial for [beanquery](https://github.com/beancount/beanquery) — a customizable, extensible, lightweight SQL-like query tool for [Beancount](https://github.com/beancount/beancount/) ledger data.
@@ -25,16 +24,15 @@ Comments, feedback and PRs are more than welcome!
 
 ##  1 How to open the manual
 
-###  1.1 As a static HTML file
+You can read / open the manual in the following ways
 
-As a static HTML file the manual can be read at the **[GitHub Pages](https://ev2geny.github.io/beanquery-interactive-manual/)**
+###  1.1 As a static HTML file in the **[GitHub Pages](https://ev2geny.github.io/beanquery-interactive-manual/)**
 
-###  1.1 To interact with the document, whilst reading
 
-####  1.1.1 Option 1: From the [Marimo Molab cloud](https://molab.marimo.io/notebooks/nb_hht9waEQnsrjBSRp5ZKGPu/app)
+###  1.2 As an online interactive manual in the **[Marimo Molab cloud](https://molab.marimo.io/notebooks/nb_hht9waEQnsrjBSRp5ZKGPu/app)**
 
    
-####  1.1.2 Option 2: Locally on your PC
+###  1.2 As an interactive manual locally on your PC
 
 To be able to interact with the manual (to change queries, ledgers) one has to run it as a marimo notebook.
 To achieve this do the following:
