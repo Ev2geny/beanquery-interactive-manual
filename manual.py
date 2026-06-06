@@ -2852,6 +2852,141 @@ def _(date_bin_fy_query_ui, date_bin_ledger_ui, query_output):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    #### 12.2.7 DATE_PART()
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Introduced in beanquery commit [`e39b7d71`](https://github.com/beancount/beanquery/commit/e39b7d71b7e3ba6482c20eaf3b4cdfc9b8bd096c) (Jun 2024).
+
+    ```text
+    date_part(field, date) -> int
+    ```
+
+    Extracts the specified component of a date as an integer. The `field` argument is a string naming the component to extract. Modelled on PostgreSQL's `date_part()`.
+
+    Supported fields:
+
+    | `field` | Returns | Example for `2024-06-09` (a Sunday) |
+    |---|---|---|
+    | `'year'` | Calendar year | `2024` |
+    | `'quarter'` | Quarter of the year (1–4) | `2` |
+    | `'month'` | Month (1–12) | `6` |
+    | `'week'` | ISO week number (1–53) | `23` |
+    | `'weekday'` or `'dow'` | Day of week, **Mon=0 … Sun=6** (Python convention) | `6` |
+    | `'isoweekday'` or `'isodow'` | Day of week, **Mon=1 … Sun=7** (ISO convention) | `7` |
+    | `'isoyear'` | ISO year (may differ from calendar year for dates near January 1) | `2024` |
+    | `'decade'` | `year // 10` | `202` |
+    | `'century'` | Century (1-based: years 2001–2100 → century `21`) | `21` |
+    | `'millennium'` | Millennium (1-based: years 2001–3000 → millennium `3`) | `3` |
+    | `'epoch'` | Seconds since `1970-01-01` (Unix epoch) | `1717891200` |
+
+    An unrecognised `field` returns `NULL`. Note that `date_part('weekday', ...)` and `date_part('isoweekday', ...)` use **different** numbering conventions — pick the one that matches the rest of your query.
+
+    `date_part()` differs from [`date_trunc()`](#12-functions) and [`date_bin()`](#1226-date_bin) — those return a **date** (the start of a period); `date_part()` returns the period number as an **integer**, which is convenient for `GROUP BY`, `WHERE`, and arithmetic.
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Assets:Bank
+    2023-01-01 open Expenses:Food
+
+    2024-06-07 * "Friday groceries"
+      Expenses:Food     50 USD
+      Assets:Bank      -50 USD
+
+    2024-06-08 * "Saturday brunch"
+      Expenses:Food     80 USD
+      Assets:Bank      -80 USD
+
+    2024-06-09 * "Sunday dinner"
+      Expenses:Food    120 USD
+      Assets:Bank     -120 USD
+
+    2024-06-10 * "Monday lunch"
+      Expenses:Food     30 USD
+      Assets:Bank      -30 USD
+
+    2024-06-15 * "Saturday brunch"
+      Expenses:Food     90 USD
+      Assets:Bank      -90 USD
+
+    2024-06-16 * "Sunday dinner"
+      Expenses:Food    100 USD
+      Assets:Bank     -100 USD
+    """
+
+    date_part_ledger_ui = ledger_editor(_ledger, label="Ledger for DATE_PART() demo")
+    date_part_ledger_ui
+    return (date_part_ledger_ui,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **Example 1** — show the extracted components of the posting date:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date, account, narration,
+           date_part('year', date)       AS year,
+           date_part('quarter', date)    AS quarter,
+           date_part('month', date)      AS month,
+           date_part('week', date)       AS iso_week,
+           date_part('weekday', date)    AS weekday,
+           date_part('isoweekday', date) AS isoweekday
+    WHERE account = 'Expenses:Food'
+    """
+    date_part_show_query_ui = query_editor(_sql, label="DATE_PART() — extract date components")
+    date_part_show_query_ui
+    return (date_part_show_query_ui,)
+
+
+@app.cell
+def _(date_part_ledger_ui, date_part_show_query_ui, query_output):
+    query_output(date_part_ledger_ui.value, date_part_show_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **Example 2** — practical use case: total weekend spending (Saturday and Sunday). Using the Python convention (`Mon=0 … Sun=6`), weekends are `weekday >= 5`.
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT sum(position) AS weekend_spend
+    WHERE account ~ '^Expenses'
+      AND date_part('weekday', date) >= 5
+    """
+    date_part_weekend_query_ui = query_editor(_sql, label="DATE_PART() — weekend spending")
+    date_part_weekend_query_ui
+    return (date_part_weekend_query_ui,)
+
+
+@app.cell
+def _(date_part_ledger_ui, date_part_weekend_query_ui, query_output):
+    query_output(date_part_ledger_ui.value, date_part_weekend_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 13 Controlling query results
     """)
     return
