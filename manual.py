@@ -54,7 +54,6 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(io, mo):
     from beancount.loader import load_string
-    from beancount.core import display_context
     from beancount.parser import printer as bc_printer
 
     from beanquery.query import run_query
@@ -73,7 +72,10 @@ def _(io, mo):
             rtypes, rrows = run_query(entries, options_map, query)
 
             buf = io.StringIO()
-            dcontext = display_context.DisplayContext()
+            # Use the display context that beancount inferred from the ledger
+            # (stored in options_map) so that per-currency display precision
+            # matches the real bean-query shell, rather than an empty context.
+            dcontext = options_map["dcontext"]
 
             # -----------------------------------
             # Detect PRINT (entry rows)
@@ -4228,7 +4230,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### 19.1 Appendix A. Shell variables.
+    ### 19.1 Appendix A: Shell variables
     """)
     return
 
@@ -4254,6 +4256,212 @@ def _(mo):
 
     `.set numberify true`
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### 19.2 Appendix B: Display precision
+
+    Let us discuss the subject of a display precision. Beanquery does not assume a fixed number of decimal digits for a currency. Instead, the display precision is **inferred from the ledger**: while parsing, beancount looks at every amount and, for each currency, records how many fractional digits it was written with. The precision then used to display that currency is the **most frequently occurring** number of fractional digits seen for it (the statistical mode).
+
+    This inferred precision is applied uniformly to *all* amounts of that currency, including values that are computed by a query (for example with `sum()`), which are rounded to that precision before being shown.
+
+    The example below uses an artificial currency `FOO` to make this easy to observe. In **Ledger1**, the `FOO` amounts are written with 0, 1, 2 and 2 fractional digits, so two digits is the most common case and `FOO` is displayed with two decimals:
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Assets:Bank
+    2023-01-01 open Expenses:Misc
+
+    2023-01-01 * "No decimal digits transaction 1"
+      Expenses:Misc    1 FOO
+      Assets:Bank     
+
+    2023-01-02 * "One decimal digit transaction 1"
+      Expenses:Misc    10.1 FOO
+      Assets:Bank     
+
+    2023-01-03 * "Two decimal digits transaction 1"
+      Expenses:Misc    100.11 FOO
+      Assets:Bank
+
+    2023-01-04 * "Two decimal digits transaction 2"
+      Expenses:Misc    200.11 FOO
+      Assets:Bank  
+    """
+
+    ledger_precision1_ui = ledger_editor(_ledger, label="Ledger1. Two  decimal digits is the most frequent case")
+    ledger_precision1_ui
+    return (ledger_precision1_ui,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Let us check the not aggregate query
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date, account, narration, position
+    WHERE account = 'Expenses:Misc'
+    """
+    sql_precision_ui = query_editor(_sql, label="Not an aggregate query")
+    sql_precision_ui
+    return (sql_precision_ui,)
+
+
+@app.cell
+def _(ledger_precision1_ui, query_output, sql_precision_ui):
+    query_output(ledger_precision1_ui.value, sql_precision_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Observe that amounts are displayed not with the original precision, but with the one inferred from the ledger (2 decimal digits in this case).
+
+    Let is now test an aggregate query on the same ledger.
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT sum(position) as total_expenses
+    WHERE account = 'Expenses:Misc'
+    """
+    sql_precision_agg_ui = query_editor(_sql, label="Aggregate query to test precision of amounts")
+    sql_precision_agg_ui
+    return (sql_precision_agg_ui,)
+
+
+@app.cell
+def _(ledger_precision1_ui, query_output, sql_precision_agg_ui):
+    query_output(ledger_precision1_ui.value, sql_precision_agg_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    The aggregated total above (`311.32 FOO`) keeps two decimals, consistent with the inferred precision for `FOO`.
+
+    Now compare this with **Ledger2** below. It contains the same four transactions plus two extra `FOO` amounts written with no decimal digits (`1000` and `2000`). This makes *zero* fractional digits the most common case for `FOO`, so the inferred precision becomes 0 and the same aggregate query now rounds the total to whole units:
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Assets:Bank
+    2023-01-01 open Expenses:Misc
+
+    2023-01-01 * "No decimal digits transaction 1"
+      Expenses:Misc    1 FOO
+      Assets:Bank
+
+    2023-01-02 * "One decimal digit transaction 1"
+      Expenses:Misc    10.1 FOO
+      Assets:Bank
+
+    2023-01-03 * "Two decimal digits transaction 1"
+      Expenses:Misc    100.11 FOO
+      Assets:Bank
+
+    2023-01-04 * "Two decimal digits transaction 2"
+      Expenses:Misc    200.11 FOO
+      Assets:Bank
+
+    2023-01-05 * "No decimal digits transaction 2"
+      Expenses:Misc    1000 FOO
+      Assets:Bank
+
+    2023-01-06 * "No decimal digits transaction 3"
+      Expenses:Misc    2000 FOO
+      Assets:Bank
+    """
+
+    ledger_precision2_ui = ledger_editor(_ledger, label="Ledger2. No  decimal digits is the most frequent case")
+    ledger_precision2_ui
+    return (ledger_precision2_ui,)
+
+
+@app.cell
+def _(ledger_precision2_ui, query_output, sql_precision_agg_ui):
+    query_output(ledger_precision2_ui.value, sql_precision_agg_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    If the inferred precision is not what you want, you can pin it explicitly per currency with the `display_precision` option in the ledger. For example, adding
+
+    ```
+    option "display_precision" "FOO:0.01"
+    ```
+
+    forces `FOO` to always render with two decimal digits, regardless of how the amounts are written in the ledger.
+
+    **Ledger3** below is identical to Ledger2 (zero decimals is the most common case for `FOO`), but with this option added at the top. Running the same aggregate query now shows the total with two decimals, overriding the inferred precision:
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    option "display_precision" "FOO:0.01"
+
+    2023-01-01 open Assets:Bank
+    2023-01-01 open Expenses:Misc
+
+    2023-01-01 * "No decimal digits transaction 1"
+      Expenses:Misc    1 FOO
+      Assets:Bank
+
+    2023-01-02 * "One decimal digit transaction 1"
+      Expenses:Misc    10.1 FOO
+      Assets:Bank
+
+    2023-01-03 * "Two decimal digits transaction 1"
+      Expenses:Misc    100.11 FOO
+      Assets:Bank
+
+    2023-01-04 * "Two decimal digits transaction 2"
+      Expenses:Misc    200.11 FOO
+      Assets:Bank
+
+    2023-01-05 * "No decimal digits transaction 2"
+      Expenses:Misc    1000 FOO
+      Assets:Bank
+
+    2023-01-06 * "No decimal digits transaction 3"
+      Expenses:Misc    2000 FOO
+      Assets:Bank
+    """
+
+    ledger_precision3_ui = ledger_editor(_ledger, label='Ledger3. Like Ledger2, but with display_precision pinned to two digits for FOO')
+    ledger_precision3_ui
+    return (ledger_precision3_ui,)
+
+
+@app.cell
+def _(ledger_precision3_ui, query_output, sql_precision_agg_ui):
+    query_output(ledger_precision3_ui.value, sql_precision_agg_ui.value)
     return
 
 
