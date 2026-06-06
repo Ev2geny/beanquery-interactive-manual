@@ -3469,8 +3469,89 @@ def _(mo):
     ORDER BY payee, date DESC;
     ```
 
-    _TODO#: add examples_
+    Let us demonstrate this with the ledger below, which contains a handful of expense postings with various dates and amounts.
     """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2024-01-01 open Assets:Bank
+    2024-01-01 open Expenses:Food
+    2024-01-01 open Expenses:Transport
+
+    2024-01-10 * "Cafe Rosa" "Lunch"
+      Expenses:Food   12 USD
+      Assets:Bank
+
+    2024-01-03 * "Metro" "Monthly pass"
+      Expenses:Transport  60 USD
+      Assets:Bank
+
+    2024-01-20 * "Cafe Rosa" "Dinner"
+      Expenses:Food   45 USD
+      Assets:Bank
+
+    2024-01-05 * "Taxi Co" "Airport ride"
+      Expenses:Transport  30 USD
+      Assets:Bank
+    """
+
+    orderby_ledger_ui = ledger_editor(_ledger, label="Ledger for ORDER BY demo")
+    orderby_ledger_ui
+    return (orderby_ledger_ui,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **Example 1** — sort the expenses from largest to smallest amount with `ORDER BY number DESC`. Without the clause the rows would come out in their default (date) order; here the biggest expense is listed first:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date, payee, narration, number
+    WHERE account ~ '^Expenses'
+    ORDER BY number DESC
+    """
+    orderby_amount_query_ui = query_editor(_sql, label="ORDER BY number DESC")
+    orderby_amount_query_ui
+    return (orderby_amount_query_ui,)
+
+
+@app.cell
+def _(orderby_amount_query_ui, orderby_ledger_ui, query_output):
+    query_output(orderby_ledger_ui.value, orderby_amount_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **Example 2** — you can order by several columns. The rows are sorted by the first column, ties broken by the next, and so on. Here the result is grouped by `account` and, within each account, by `date`:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date, account, payee, number
+    WHERE account ~ '^Expenses'
+    ORDER BY account, date
+    """
+    orderby_multi_query_ui = query_editor(_sql, label="ORDER BY on multiple columns")
+    orderby_multi_query_ui
+    return (orderby_multi_query_ui,)
+
+
+@app.cell
+def _(orderby_ledger_ui, orderby_multi_query_ui, query_output):
+    query_output(orderby_ledger_ui.value, orderby_multi_query_ui.value)
     return
 
 
