@@ -3098,6 +3098,122 @@ def _(date_part_ledger_ui, date_part_weekend_query_ui, query_output):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    #### 12.2.8 COALESCE()
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ```text
+    coalesce(expr1, expr2, ...) -> value
+    ```
+
+    Note: at the time of writing this function is [not displayed by the `.help targets` shell command](https://github.com/beancount/beanquery/issues/284)
+
+    Returns the value of the **first argument that is not `NULL`**, evaluating the arguments left to right. If every argument is `NULL`, the result is `NULL`. This is the standard SQL `COALESCE`, typically used to supply a fallback value when something might be missing. The function name is case-insensitive, so `coalesce(...)` and `COALESCE(...)` are equivalent.
+
+    A common use is providing a default for optional metadata, which is `NULL` whenever the key is absent on a posting.
+
+    **Important — all arguments must have the same type.** Beanquery requires the arguments of `coalesce()` to be of a single, uniform type, and the result takes the type of the first argument. This is stricter than `COALESCE` in many SQL databases. In particular, [`meta()`](#1016-the-meta-column) has the generic type `object`, so combining it directly with a string literal fails to compile:
+
+    ```sql
+    -- ERROR: arguments must have uniform type, found: object, str
+    SELECT coalesce(meta('project'), 'unassigned')
+    ```
+
+    The fix is to cast the metadata to a concrete type first, e.g. with `str()`, so that all arguments are strings. Conveniently, `str()` of a missing value is itself `NULL`, so the fallback still kicks in:
+
+    ```sql
+    SELECT coalesce(str(meta('project')), 'unassigned')
+    ```
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2024-01-01 open Assets:Bank
+    2024-01-01 open Expenses:Food
+    2024-01-01 open Expenses:Travel
+
+    2024-01-02 * "Groceries"
+      Expenses:Food     50 USD
+        project: "Home"
+      Assets:Bank
+
+    2024-01-03 * "Flight"
+      Expenses:Travel  300 USD
+        project: "Vacation"
+      Assets:Bank
+
+    2024-01-04 * "Snack"
+      Expenses:Food      5 USD
+      Assets:Bank
+    """
+
+    coalesce_ledger_ui = ledger_editor(_ledger, label="Ledger for COALESCE() demo")
+    coalesce_ledger_ui
+    return (coalesce_ledger_ui,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **Example 1** — fall back to `'unassigned'` for postings that have no `project` metadata. The `Snack` posting has no `project` key, so the fallback is used:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date, narration,
+           coalesce(str(meta['project']), 'unassigned') AS project
+    WHERE account ~ '^Expenses'
+    """
+    coalesce_basic_query_ui = query_editor(_sql, label="COALESCE() — metadata fallback")
+    coalesce_basic_query_ui
+    return (coalesce_basic_query_ui,)
+
+
+@app.cell
+def _(coalesce_basic_query_ui, coalesce_ledger_ui, query_output):
+    query_output(coalesce_ledger_ui.value, coalesce_basic_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **Example 2** — `coalesce()` accepts more than two arguments and tries each in turn. Here it looks for a `project` key first, then a `category` key, and finally falls back to `'none'`. Since all arguments are wrapped in `str()`, they share the same (`str`) type, as required:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date, narration,
+           coalesce(str(meta['project']), str(meta['category']), 'none') AS label
+    WHERE account ~ '^Expenses'
+    """
+    coalesce_multi_query_ui = query_editor(_sql, label="COALESCE() — multiple fallbacks")
+    coalesce_multi_query_ui
+    return (coalesce_multi_query_ui,)
+
+
+@app.cell
+def _(coalesce_ledger_ui, coalesce_multi_query_ui, query_output):
+    query_output(coalesce_ledger_ui.value, coalesce_multi_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 13 Controlling query results
     """)
     return
