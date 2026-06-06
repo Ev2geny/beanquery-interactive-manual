@@ -45,7 +45,7 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
 
-    VERSION ="0.2.0"
+    VERSION ="0.2.1.dev0"
 
     mo.md(f"*Version: {VERSION}*")
     return
