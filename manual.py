@@ -3334,8 +3334,113 @@ def _(mo):
     mo.md(r"""
     There is a post-filtering phase that supports uniquifying result rows. You can trigger this unique filter with the DISTINCT flag after SELECT, as is common in SQL, e.g.
 
-    _#TODO: add practical examples_
+    ```
+    SELECT DISTINCT account
+    ```
+
+    DISTINCT removes duplicate rows from the result, keeping only the first occurrence of each. Two rows are considered duplicates only when **all** selected columns are equal, so the more columns you select, the fewer rows are collapsed. The original order of the remaining rows is preserved.
+
+    This is handy because the `postings` table holds one row per posting, so the same value (an account, a payee, a currency, …) typically appears many times. DISTINCT lets you turn that into a list of the distinct values actually used.
+
+    Let us demonstrate this with the ledger below, which posts to the same accounts and payees across several transactions.
     """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2024-01-01 open Assets:Bank
+    2024-01-01 open Expenses:Food
+    2024-01-01 open Expenses:Transport
+
+    2024-01-02 * "Cafe Rosa" "Lunch"
+      Expenses:Food   12 USD
+      Assets:Bank
+
+    2024-01-05 * "Cafe Rosa" "Dinner"
+      Expenses:Food   30 USD
+      Assets:Bank
+
+    2024-01-07 * "Metro" "Bus ticket"
+      Expenses:Transport  3 USD
+      Assets:Bank
+    """
+
+    distinct_ledger_ui = ledger_editor(_ledger, label="Ledger for DISTINCT demo")
+    distinct_ledger_ui
+    return (distinct_ledger_ui,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **Without `DISTINCT`**, selecting just the account produces one row per posting, so accounts repeat (`Assets:Bank` appears in every transaction):
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account
+    """
+    distinct_without_query_ui = query_editor(_sql, label="Without DISTINCT")
+    distinct_without_query_ui
+    return (distinct_without_query_ui,)
+
+
+@app.cell
+def _(distinct_ledger_ui, distinct_without_query_ui, query_output):
+    query_output(distinct_ledger_ui.value, distinct_without_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **With `DISTINCT`**, each account is listed once — a quick way to get the set of accounts actually used by the postings:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT DISTINCT account
+    """
+    distinct_with_query_ui = query_editor(_sql, label="With DISTINCT")
+    distinct_with_query_ui
+    return (distinct_with_query_ui,)
+
+
+@app.cell
+def _(distinct_ledger_ui, distinct_with_query_ui, query_output):
+    query_output(distinct_ledger_ui.value, distinct_with_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Because rows are deduplicated only when **all** selected columns match, adding a second column keeps more rows. Selecting the distinct `(account, payee)` pairs below shows that `Assets:Bank` now appears twice — once for each payee it was used with:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT DISTINCT account, payee
+    """
+    distinct_pairs_query_ui = query_editor(_sql, label="DISTINCT on multiple columns")
+    distinct_pairs_query_ui
+    return (distinct_pairs_query_ui,)
+
+
+@app.cell
+def _(distinct_ledger_ui, distinct_pairs_query_ui, query_output):
+    query_output(distinct_ledger_ui.value, distinct_pairs_query_ui.value)
     return
 
 
