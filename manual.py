@@ -715,7 +715,7 @@ def _(mo):
     SELECT [DISTINCT] [<targets>|*]
     [FROM <entry-filter-logical-expression> [OPEN ON <date>] [CLOSE [ON <date>]] [CLEAR]]
     [WHERE <posting-filter-logical-expression>]
-    [GROUP BY <groups>]
+    [GROUP BY <groups> [HAVING <aggregate-filter-expression>]]
     [ORDER BY <groups> [ASC|DESC]]
     [LIMIT num]
     ```
@@ -764,7 +764,7 @@ def _(mo):
     SELECT [DISTINCT] [<targets>|*]
     [FROM #<table-name>]
     [WHERE <posting-filter-logical-expression>]
-    [GROUP BY <groups>]
+    [GROUP BY <groups> [HAVING <aggregate-filter-expression>]]
     [ORDER BY <groups> [ASC|DESC]]
     [LIMIT num]
     ```
@@ -3588,6 +3588,153 @@ def _(query_editor):
 @app.cell
 def _(limit_query_ui, orderby_ledger_ui, query_output):
     query_output(orderby_ledger_ui.value, limit_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### 13.4 HAVING
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    The HAVING clause filters the **groups** of an [aggregate query](#121-aggregate-functions-and-aggregate-queries) after the aggregation has been computed. It is the aggregate counterpart of the `WHERE` clause:
+
+    * `WHERE` filters individual postings **before** they are grouped.
+    * `HAVING` filters the resulting groups **after** the aggregates are calculated.
+
+    HAVING is written as part of the GROUP BY clause:
+
+    ```
+    SELECT account, sum(number) AS total
+    GROUP BY account
+    HAVING sum(number) > 100
+    ```
+
+    Two rules are worth remembering:
+
+    * HAVING only makes sense together with `GROUP BY` — it filters groups, so there must be groups.
+    * The HAVING condition **must be an aggregate expression** (for example `sum(...)`, `count(...)`). A plain non-aggregate condition such as `HAVING account ~ 'Food'` is rejected with the error *"the HAVING clause must be an aggregate expression"* — such conditions belong in `WHERE` instead.
+
+    Let us demonstrate this with the ledger below. It has three expense accounts with different totals and a different number of postings each.
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2024-01-01 open Assets:Bank
+    2024-01-01 open Expenses:Food
+    2024-01-01 open Expenses:Transport
+    2024-01-01 open Expenses:Books
+
+    2024-01-02 * "Groceries"
+      Expenses:Food   40 USD
+      Assets:Bank
+
+    2024-01-09 * "Restaurant"
+      Expenses:Food   60 USD
+      Assets:Bank
+
+    2024-01-05 * "Bus ticket"
+      Expenses:Transport  15 USD
+      Assets:Bank
+
+    2024-01-20 * "Novel"
+      Expenses:Books  25 USD
+      Assets:Bank
+    """
+
+    having_ledger_ui = ledger_editor(_ledger, label="Ledger for HAVING demo")
+    having_ledger_ui
+    return (having_ledger_ui,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    First, the totals **without** HAVING — all three groups are returned, with their summed amount and the number of postings in each:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, sum(number) AS total, count(number) AS postings
+    WHERE account ~ '^Expenses'
+    GROUP BY account
+    ORDER BY account
+    """
+    having_all_query_ui = query_editor(_sql, label="GROUP BY without HAVING")
+    having_all_query_ui
+    return (having_all_query_ui,)
+
+
+@app.cell
+def _(having_all_query_ui, having_ledger_ui, query_output):
+    query_output(having_ledger_ui.value, having_all_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **Example 1** — keep only the accounts whose total spending exceeds 20. This drops `Expenses:Transport` (total 15), leaving the larger groups:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, sum(number) AS total
+    WHERE account ~ '^Expenses'
+    GROUP BY account
+    HAVING sum(number) > 20
+    ORDER BY account
+    """
+    having_sum_query_ui = query_editor(_sql, label="HAVING on sum()")
+    having_sum_query_ui
+    return (having_sum_query_ui,)
+
+
+@app.cell
+def _(having_ledger_ui, having_sum_query_ui, query_output):
+    query_output(having_ledger_ui.value, having_sum_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **Example 2** — the HAVING condition can use any aggregate, not just the one shown in the result. Here we keep only the accounts that have **more than one** posting, which selects `Expenses:Food` alone:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, count(number) AS postings, sum(number) AS total
+    WHERE account ~ '^Expenses'
+    GROUP BY account
+    HAVING count(number) > 1
+    ORDER BY account
+    """
+    having_count_query_ui = query_editor(_sql, label="HAVING on count()")
+    having_count_query_ui
+    return (having_count_query_ui,)
+
+
+@app.cell
+def _(having_count_query_ui, having_ledger_ui, query_output):
+    query_output(having_ledger_ui.value, having_count_query_ui.value)
     return
 
 
