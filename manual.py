@@ -2721,7 +2721,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 12.2.6 DATE_BIN()
+    #### 12.2.6 DATE_BIN() and DATE_TRUNC()
     """)
     return
 
@@ -2729,25 +2729,16 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Introduced in beanquery commit [`51ad2619`](https://github.com/beancount/beanquery/commit/51ad2619acf787845b149b6330defb99ee33366b) (Nov 2024).
+    Both functions map a date down to the **start of a period** and return a **date**, which makes them ideal as `GROUP BY` keys for aggregating postings by week, month, quarter, year, or fiscal period. (Contrast this with [`date_part()`](#1227-date_part), which returns an **integer** component of a date rather than a date.)
 
-    ```text
-    date_bin(stride, source, origin)
-    ```
-    Is a function for rounding timestamps down into fixed-width intervals, called the `stride`, aligned to an `origin`. It is similar to SQL's `date_bin()` but extended to accept strides with units of months and years (which have variable length). The function is particularly useful with `GROUP BY` to aggregate postings by week, month, quarter, fiscal year, or any other custom-aligned period.
+    They differ only in how the period boundaries are defined:
 
-    * `stride` — either an [`interval`](#1225-intervalstr) (e.g. `interval('1 month')`) or a string accepted by `interval()` (e.g. `'1 month'`, `'3 days'`, `'1 year'`).
-    * `source` — the date to be binned.
-    * `origin` — any date that defines the alignment of the bins. The origin does **not** have to be earlier than `source`; bins extend in both directions.
+    * **`date_trunc(field, date)`** snaps to **fixed calendar boundaries**, chosen from a list of named periods (`week`, `month`, `quarter`, `year`, …). It is the shorter, simpler form.
+    * **`date_bin(stride, source, origin)`** snaps to a grid of equal-width bins defined by an arbitrary `stride` and a **custom `origin`**. This lets it express things `date_trunc()` cannot — fiscal years starting in April, 3-day buckets, etc.
 
-    Quick reference:
+    For standard calendar periods the two are equivalent — e.g. `date_trunc('quarter', date)` produces the same result as `date_bin('3 months', date, 2000-01-01)`. Reach for `date_trunc()` when the calendar boundaries are what you want, and `date_bin()` when you need a custom alignment.
 
-    | Call | Result | Why |
-    |---|---|---|
-    | `date_bin('1 year', 2024-11-10, 2024-06-01)` | `2024-06-01` | Yearly bins from Jun 1. Nov 10 falls in the bin `[2024-06-01, 2025-06-01)`. |
-    | `date_bin('1 year', 2024-11-10, 2025-06-01)` | `2024-06-01` | Origin is in the future — bins still extend backward. |
-    | `date_bin('1 month', 2024-11-10, 2024-06-03)` | `2024-11-03` | Monthly bins aligned to day 3. Nov 10 → `[Nov 3, Dec 3)`. |
-    | `date_bin('3 days', 2024-11-10, 2024-11-02)` | `2024-11-08` | 3-day bins starting Nov 2: Nov 2, 5, 8, 11. Nov 10 → bin starting Nov 8. |
+    The single ledger below is reused for every example in this section.
     """)
     return
 
@@ -2788,15 +2779,43 @@ def _(ledger_editor):
       Assets:Bank      -100 USD
     """
 
-    date_bin_ledger_ui = ledger_editor(_ledger, label="Ledger for DATE_BIN() demo")
-    date_bin_ledger_ui
-    return (date_bin_ledger_ui,)
+    date_period_ledger_ui = ledger_editor(_ledger, label="Ledger for DATE_BIN() / DATE_TRUNC() demos")
+    date_period_ledger_ui
+    return (date_period_ledger_ui,)
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    **Example 1** — monthly aggregation, aligned to the start of each calendar month:
+    ##### DATE_BIN()
+
+    Introduced in beanquery commit [`51ad2619`](https://github.com/beancount/beanquery/commit/51ad2619acf787845b149b6330defb99ee33366b) (Nov 2024).
+
+    ```text
+    date_bin(stride, source, origin)
+    ```
+    Is a function for rounding timestamps down into fixed-width intervals, called the `stride`, aligned to an `origin`. It is similar to SQL's `date_bin()` but extended to accept strides with units of months and years (which have variable length). The function is particularly useful with `GROUP BY` to aggregate postings by week, month, quarter, fiscal year, or any other custom-aligned period.
+
+    * `stride` — either an [`interval`](#1225-intervalstr) (e.g. `interval('1 month')`) or a string accepted by `interval()` (e.g. `'1 month'`, `'3 days'`, `'1 year'`).
+    * `source` — the date to be binned.
+    * `origin` — any date that defines the alignment of the bins. The origin does **not** have to be earlier than `source`; bins extend in both directions.
+
+    Quick reference:
+
+    | Call | Result | Why |
+    |---|---|---|
+    | `date_bin('1 year', 2024-11-10, 2024-06-01)` | `2024-06-01` | Yearly bins from Jun 1. Nov 10 falls in the bin `[2024-06-01, 2025-06-01)`. |
+    | `date_bin('1 year', 2024-11-10, 2025-06-01)` | `2024-06-01` | Origin is in the future — bins still extend backward. |
+    | `date_bin('1 month', 2024-11-10, 2024-06-03)` | `2024-11-03` | Monthly bins aligned to day 3. Nov 10 → `[Nov 3, Dec 3)`. |
+    | `date_bin('3 days', 2024-11-10, 2024-11-02)` | `2024-11-08` | 3-day bins starting Nov 2: Nov 2, 5, 8, 11. Nov 10 → bin starting Nov 8. |
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **DATE_BIN() Example 1** — quarterly aggregation, aligned to the start of each calendar quarter:
     """)
     return
 
@@ -2816,15 +2835,15 @@ def _(query_editor):
 
 
 @app.cell
-def _(date_bin_ledger_ui, date_bin_month_query_ui, query_output):
-    query_output(date_bin_ledger_ui.value, date_bin_month_query_ui.value)
+def _(date_bin_month_query_ui, date_period_ledger_ui, query_output):
+    query_output(date_period_ledger_ui.value, date_bin_month_query_ui.value)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    **Example 2** — fiscal-year aggregation, aligned to a custom origin (here, April 1). This is something that the standard `year()` function cannot do, since it always uses the calendar year.
+    **DATE_BIN() Example 2** — fiscal-year aggregation, aligned to a custom origin (here, April 1). This is something that the standard `year()` function cannot do, since it always uses the calendar year.
     """)
     return
 
@@ -2844,8 +2863,98 @@ def _(query_editor):
 
 
 @app.cell
-def _(date_bin_fy_query_ui, date_bin_ledger_ui, query_output):
-    query_output(date_bin_ledger_ui.value, date_bin_fy_query_ui.value)
+def _(date_bin_fy_query_ui, date_period_ledger_ui, query_output):
+    query_output(date_period_ledger_ui.value, date_bin_fy_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ##### DATE_TRUNC()
+
+    Introduced in beanquery commit [`6df80214`](https://github.com/beancount/beanquery/commit/6df80214d1c1f8aabdba0af732e5e1a36f631e43) (Mar 2024).
+
+    ```text
+    date_trunc(field, date) -> date
+    ```
+
+    Truncates a date down to the start of the period named by `field`, and returns that period's start **date**. The `field` argument is a string. Modelled on PostgreSQL's `date_trunc()`.
+
+    Supported fields:
+
+    | `field` | Truncates to | Example for `2016-11-20` (a Sunday) |
+    |---|---|---|
+    | `'week'` | Most recent **Monday** on or before the date | `2016-11-14` |
+    | `'month'` | First day of the month | `2016-11-01` |
+    | `'quarter'` | First day of the calendar quarter | `2016-10-01` |
+    | `'year'` | January 1 of the year | `2016-01-01` |
+    | `'decade'` | January 1 of the decade (`year − year % 10`) | `2010-01-01` |
+    | `'century'` | January 1 of the century (1-based: years 2001–2100 → `2001`) | `2001-01-01` |
+    | `'millennium'` | January 1 of the millennium (1-based: years 2001–3000 → `2001`) | `2001-01-01` |
+
+    An unrecognised `field` returns `NULL`. Note the 1-based boundaries for `century` and `millennium`: `date_trunc('century', 2000-11-20)` returns `1901-01-01`, while `date_trunc('century', 2001-11-20)` returns `2001-01-01`.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **DATE_TRUNC() Example 1** — show the same posting date truncated to different periods. The `*_bin` columns reproduce the `month_start`, `quarter_start`, and `year_start` values with `date_bin()` (aligned to the calendar origin `2000-01-01`), demonstrating that the two functions agree for standard calendar periods:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date,
+           date_trunc('week', date)              AS week_start,
+           date_trunc('month', date)             AS month_start,
+           date_bin('1 month', date, 2000-01-01) AS month_start_bin,
+           date_trunc('quarter', date)            AS quarter_start,
+           date_bin('3 months', date, 2000-01-01) AS quarter_start_bin,
+           date_trunc('year', date)              AS year_start,
+           date_bin('1 year', date, 2000-01-01)  AS year_start_bin
+    WHERE account = 'Expenses:Food'
+    """
+    date_trunc_show_query_ui = query_editor(_sql, label="DATE_TRUNC() vs DATE_BIN() — equivalent period starts")
+    date_trunc_show_query_ui
+    return (date_trunc_show_query_ui,)
+
+
+@app.cell
+def _(date_period_ledger_ui, date_trunc_show_query_ui, query_output):
+    query_output(date_period_ledger_ui.value, date_trunc_show_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **DATE_TRUNC() Example 2** — practical use case: aggregate expenses by calendar quarter. Because `date_trunc('quarter', date)` maps every date in a quarter to the same start date, it works directly as a `GROUP BY` key — and gives the same result as `date_bin('3 months', date, 2023-01-01)` above:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date_trunc('quarter', date) AS quarter_start,
+           sum(position)
+    WHERE account ~ '^Expenses'
+    GROUP BY 1
+    ORDER BY 1
+    """
+    date_trunc_group_query_ui = query_editor(_sql, label="DATE_TRUNC() — quarterly totals")
+    date_trunc_group_query_ui
+    return (date_trunc_group_query_ui,)
+
+
+@app.cell
+def _(date_period_ledger_ui, date_trunc_group_query_ui, query_output):
+    query_output(date_period_ledger_ui.value, date_trunc_group_query_ui.value)
     return
 
 
@@ -2886,7 +2995,7 @@ def _(mo):
 
     An unrecognised `field` returns `NULL`. Note that `date_part('weekday', ...)` and `date_part('isoweekday', ...)` use **different** numbering conventions — pick the one that matches the rest of your query.
 
-    `date_part()` differs from [`date_trunc()`](#12-functions) and [`date_bin()`](#1226-date_bin) — those return a **date** (the start of a period); `date_part()` returns the period number as an **integer**, which is convenient for `GROUP BY`, `WHERE`, and arithmetic.
+    [`date_trunc()` and `date_bin()`](#1226-date_bin-and-date_trunc) return a **date** (the start of a period), whereas `date_part()` returns the period number as an **integer**, which is convenient for `GROUP BY`, `WHERE`, and arithmetic.
     """)
     return
 
