@@ -3214,6 +3214,100 @@ def _(coalesce_ledger_ui, coalesce_multi_query_ui, query_output):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    #### 12.2.9 META(), ENTRY_META() and ANY_META()
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ```text
+    meta(key)       -> value
+    entry_meta(key) -> value
+    any_meta(key)   -> value
+    ```
+
+    These three functions look up a metadata `key`, but differ in **where** they look:
+
+    | Function | Looks at | Returns `NULL` when |
+    |---|---|---|
+    | `meta(key)` | the **posting**'s own metadata | the posting has no such key |
+    | `entry_meta(key)` | the parent **transaction**'s metadata | the transaction has no such key |
+    | `any_meta(key)` | the **posting** first, then falls back to the **transaction** | neither the posting nor the transaction has the key |
+
+    In Beancount, metadata can be attached either to the transaction (indented under the date line) or to an individual posting (indented under the posting). `meta()` sees only the latter, `entry_meta()` only the former, and `any_meta()` combines them — preferring the posting's value when the key exists at both levels.
+
+    All three return the generic type `object`, so the same type caveat as [`coalesce()`](#1228-coalesce) applies: wrap them in `str()` (or another cast) before combining them with values of a concrete type.
+
+    The ledger below carries a `project` key in three different positions so the difference is easy to see: on the posting only, on the transaction only, and on both at once.
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2024-01-01 open Assets:Bank
+    2024-01-01 open Expenses:Food
+
+    2024-01-02 * "Posting-level only"
+      Expenses:Food   10 USD
+        project: "Alpha"
+      Assets:Bank
+
+    2024-01-03 * "Transaction-level only"
+      project: "Beta"
+      Expenses:Food   20 USD
+      Assets:Bank
+
+    2024-01-04 * "Both levels"
+      project: "EntryGamma"
+      Expenses:Food   30 USD
+        project: "PostingGamma"
+      Assets:Bank
+    """
+
+    meta_funcs_ledger_ui = ledger_editor(_ledger, label="Ledger for META() / ENTRY_META() / ANY_META() demo")
+    meta_funcs_ledger_ui
+    return (meta_funcs_ledger_ui,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    The single query below shows all three functions side by side. Notice how, for each row, the value depends on where the `project` key lives: `any_meta()` returns the posting value when present and otherwise falls back to the transaction value.
+
+    Let us demonstrate this with the simple query, where for illustrative purposes we will also add `meta` and `entry.meta` objects themselves.
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT narration,
+           meta,
+           meta('project')       AS posting_project,
+           entry.meta,
+           entry_meta('project') AS entry_project,
+           any_meta('project')   AS any_project
+    WHERE account = 'Expenses:Food'
+    """
+    meta_funcs_query_ui = query_editor(_sql, label="META() / ENTRY_META() / ANY_META() side by side")
+    meta_funcs_query_ui
+    return (meta_funcs_query_ui,)
+
+
+@app.cell
+def _(meta_funcs_ledger_ui, meta_funcs_query_ui, query_output):
+    query_output(meta_funcs_ledger_ui.value, meta_funcs_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 13 Controlling query results
     """)
     return
