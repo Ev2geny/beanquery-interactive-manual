@@ -3572,8 +3572,27 @@ def _(mo):
 
     This would output the first 100 result rows and then stop. While this is a common clause present in the SQL language, in the context of double-entry bookkeeping it is not very useful: we always have relatively small datasets to work from. Nevertheless, it is provided for completeness.
 
-    _TODO#: add examples_
+    `LIMIT` becomes more useful when combined with [`ORDER BY`](#132-order-by) to produce a "top N" report. The example below reuses the ORDER BY demo ledger and lists the **two largest** expenses by sorting on the amount descending and then keeping only the first two rows:
     """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date, payee, narration, number
+    WHERE account ~ '^Expenses'
+    ORDER BY number DESC
+    LIMIT 2
+    """
+    limit_query_ui = query_editor(_sql, label="ORDER BY ... LIMIT — top 2 expenses")
+    limit_query_ui
+    return (limit_query_ui,)
+
+
+@app.cell
+def _(limit_query_ui, orderby_ledger_ui, query_output):
+    query_output(orderby_ledger_ui.value, limit_query_ui.value)
     return
 
 
