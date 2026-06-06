@@ -1496,6 +1496,14 @@ def _(ledger_ui_with_meta, query_output, sql_ui_trans_meta):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    Note, that both posting and transaction metadata can also be accessed using the [meta(), entry_meta(), and any_meta()](#1229-meta-entry_meta-and-any_meta) functions.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     #### 10.1.3 The `other_accounts` column
     """)
     return
