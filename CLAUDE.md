@@ -44,9 +44,13 @@ The interactive cells wire together `ledger_editor` + `query_editor` outputs int
 
 ## References
 
-The following files can be used for references:
+The following references are available in the `references` directory:
 
-`references/beanquery_source_code` - source code of beanquery
+`beanquery_source_code` - source code of beanquery
+`beancount_source_code` - source code of beancount
+`Beancount - Query Language.md` - original beanquery manual
+
+
 
 ## Improving English language style guide:
 
