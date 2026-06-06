@@ -1171,8 +1171,7 @@ def _(mo):
     * To get a help for the `FROM` clause expressions type `.help FROM`
     * To get a help for the `WHERE` clause expressions type `.help WHERE`
 
-    So, let us reiterate: the previously discussed `.describe <table name>` provides the columns available in a given table. This command can be used for every table. The `.help [targets | FROM | where]` on the other hand returns both columns as  well as functions, but only for transactions and postings. To make things even more confusing, note that when it comes to the transactions table, then probably due to the [bug](https://github.com/beancount/beanquery/issues/277) the `.help FROM` command lists a few more columns for the transactions table, than are available via the [`.describe transactions`](#6-available-tables-introduction) command, e.g. the [id](#1021-the-id-column) column.
-
+    So, let us reiterate: the previously discussed `.describe <table name>` provides the columns available in a given table. This command can be used for every table. The `.help [targets | FROM | where]` on the other hand returns both columns as  well as functions, but only for transactions and postings.
     Example (reduced):
 
     ```
@@ -1212,9 +1211,8 @@ def _(mo):
     ...
     ```
 
-    Note that the list of table columns (in this example the list of table columns in the transactions table), available via the `.help from` command is broader, than the list of columns available for the same table via the `.describe <table-name>`.
+    To make things even more confusing, note that when it comes to the transactions table, then probably due to the [bug](https://github.com/beancount/beanquery/issues/277) the `.help FROM` command lists a few more columns for the transactions table, than are available via the [`.describe transactions`](#6-available-tables-introduction) command, e.g. the [id](#1021-the-id-column) column, which is not available via the `.describe transactions`
 
-    E.g. in this case  `.describe transactions` does not list the `id` and some other columns, otherwise available for the `FROM ...` clause
 
     ```text
     beanquery> .describe transactions
@@ -1229,9 +1227,6 @@ def _(mo):
       accounts (set[str])
     beanquery>
     ```
-    ?? Why is that
-
-    _#TODO: investigate this and raise an issue, if applicable_
     """)
     return
 
