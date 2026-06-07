@@ -510,7 +510,7 @@ def _(mo):
 
 
     **Shell variables**
-    The interactive shell has a few “set” variables that you can customize to change some of the behavior of the shell. These are like environment variables. Refer to the [Appendix A](#191-appendix-a-shell-variables) for more information.
+    The interactive shell has a few “set” variables that you can customize to change some of the behavior of the shell. These are like environment variables. Refer to the [Appendix A](#201-appendix-a-shell-variables) for more information.
 
     Note, that in this document for demonstration purposes the following changes are made to the default environment variables:
 
@@ -687,9 +687,9 @@ def _(mo):
     Beanquery supports the following types of queries, further discussed in this document:
 
     * [SELECT](#8-select-query)
-    * [BALANCES](#152-selecting-balances-balances-query)
-    * [JOURNAL](#151-selecting-journals-journal-query)
-    * [PRINT](#153-print-print-query)
+    * [BALANCES](#162-selecting-balances-balances-query)
+    * [JOURNAL](#161-selecting-journals-journal-query)
+    * [PRINT](#163-print-print-query)
     """)
     return
 
@@ -762,21 +762,23 @@ def _(mo):
 
     ```text
     SELECT [DISTINCT] [<targets>|*]
-    [FROM #<table-name>]
+    [FROM #<table-name> | ( <select-query> )]
     [WHERE <posting-filter-logical-expression>]
     [GROUP BY <groups> [HAVING <aggregate-filter-expression>]]
     [ORDER BY <groups> [ASC|DESC]]
     [LIMIT num]
     ```
-    Let us call it the **#table** query form.
+    Let us call it the **#table** query form. (The `( <select-query> )` alternative in the FROM clause is a subquery — see [section 14](#14-subqueries).)
 
     Note that:
-    * The **#table** form is activated by adding the # symbol in front of the table name
-    * The **#table** form allows querying tables other than the postings table, but when used to query the postings table (which is possible), it lacks some functionality available in the traditional form, namely the `[OPEN ON <date>] [CLOSE [ON <date>]] [CLEAR]` part. (This may actually be a [bug](https://github.com/beancount/beanquery/issues/274), rather than a feature.)
+    * The **#table** form is activated either by adding the # symbol in front of the table name, or by putting a subquery `( <select-query> )` in the FROM clause (see [section 14](#14-subqueries))
+    * The **#table** form allows querying tables other than the postings table as well as querying of sub-queries (which act as a table), but when used to query the postings table (which is possible), it lacks some functionality available in the traditional form, namely the `[OPEN ON <date>] [CLOSE [ON <date>]] [CLEAR]` part. (This may actually be a [bug](https://github.com/beancount/beanquery/issues/274), rather than a feature.)
 
     So, to summarize:
     * In the traditional BQL, the FROM clause is used to describe the posting-level filter, not to identify the data source
-    * In the **#table** syntax, the table name must be preceded by the # symbol
+    * In the **#table** form, the FROM clause identifies the data source — either a table whose name is preceded by the # symbol, or a subquery
+
+    In addition to a table reference, the FROM clause can also contain a **subquery** — a parenthesised `SELECT` whose result is used as the data source (a *derived table*). Subqueries may also appear inside `WHERE` expressions, together with the `IN`, `ANY` and `ALL` operators. Subqueries are covered separately in [section 14](#14-subqueries).
 
     Currently beanquery supports both query types. Let us explore this with a simple ledger.
     """)
@@ -1893,7 +1895,7 @@ def _(ledger_id_ui, query_output, sql_ui_id_postings):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Once the `id` field is known, one can use it also for transaction-level filtering.  E.g. one can use the [`PRINT` query](#153-print-print-query) (discussed later) to print a specific entry. This can be useful during debugging.
+    Once the `id` field is known, one can use it also for transaction-level filtering.  E.g. one can use the [`PRINT` query](#163-print-print-query) (discussed later) to print a specific entry. This can be useful during debugging.
     """)
     return
 
@@ -3741,7 +3743,309 @@ def _(having_count_query_ui, having_ledger_ui, query_output):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 14 Statement operators (OPEN ON, CLOSE ON, CLEAR)
+    ## 14 Subqueries
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    A **subquery** is a `SELECT` statement nested, in parentheses, inside another query. beanquery supports subqueries in two distinct places:
+
+    * In the **FROM clause**, where a subquery acts as a *derived table* — the outer query reads from the result of the inner query instead of from a real table (see [section 14.1](#141-subqueries-in-the-from-clause-derived-tables)).
+    * Inside a **WHERE expression**, together with the `IN`, `ANY` and `ALL` operators, where a subquery supplies a list of values to test against (see [section 14.2](#142-subqueries-in-where-in-any-and-all)).
+
+    Two limitations are worth stating up front:
+
+    * **Correlated subqueries are not supported.** A subquery cannot reference columns of the current row of the outer query; it is evaluated once, independently of the outer query.
+    * A subquery used with `IN` / `ANY` / `ALL` **must return exactly one column**, otherwise beanquery raises *"subquery has too many columns"*.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### 14.1 Subqueries in the FROM clause (derived tables)
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    A subquery written in parentheses in the `FROM` clause becomes a temporary table that the outer query selects from. The columns of this derived table are the named targets of the inner query, so remember to give the inner expressions names with `AS`.
+
+    Note, that such subquery can be used only in the #table form of the `SELECT` query.
+
+    ```
+    SELECT a + 2 AS b FROM (SELECT 3 AS a FROM #)
+    ```
+
+    Derived tables shine in two situations where the [HAVING clause](#134-having) cannot help:
+
+    1. **Aggregating over the result of an aggregation** — an *aggregate of an aggregate*. beanquery does not allow nesting aggregate functions directly (`max(sum(number))` is rejected), and `HAVING` can only *filter* groups, not aggregate them a second time.
+    2. **Filtering or sorting on a computed value by its alias** — the outer query refers to the inner query's named columns with ordinary (non-aggregate) expressions, instead of repeating the aggregate functions.
+
+    Let us use the ledger below — three expense categories: `Food` = 100 (2 postings), `Transport` = 15 (1 posting), `Books` = 30 (2 postings).
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2024-01-01 open Assets:Bank
+    2024-01-01 open Expenses:Food
+    2024-01-01 open Expenses:Transport
+    2024-01-01 open Expenses:Books
+
+    2024-01-02 * "Groceries"
+      Expenses:Food   40 USD
+      Assets:Bank
+
+    2024-01-03 * "Groceries"
+      Expenses:Food   5 USD
+      Assets:Bank
+
+    2024-01-05 * "Restaurant"
+      Expenses:Food   60 USD
+      Assets:Bank
+
+    2024-01-09 * "Bus ticket"
+      Expenses:Transport  15 USD
+      Assets:Bank
+
+    2024-01-20 * "Novel"
+      Expenses:Books  25 USD
+      Assets:Bank
+
+    2024-01-22 * "Comic"
+      Expenses:Books  10 USD
+      Assets:Bank
+    """
+
+    subq_ledger_ui = ledger_editor(_ledger, label="Ledger for subquery demos")
+    subq_ledger_ui
+    return (subq_ledger_ui,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **Use case 1 — aggregate of an aggregate.** Suppose we want summary statistics *across* the expense categories: how many categories there are, the largest category total, and the average spend per category. Each of these aggregates over the per-category totals, so the inner query computes one total per category and the outer query aggregates those rows. (beanquery has no `avg()` function, so the average is computed as `sum(total) / count(account)`.)
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT
+      count(account) AS qnt_categories,
+      min(total) AS smallest_category,
+      max(total) AS largest_category,
+      sum(total) / count(account) AS avg_per_category
+    FROM (
+      SELECT account, sum(number) AS total
+      WHERE account ~ '^Expenses'
+      GROUP BY account
+    )
+    """
+    subq_aggofagg_query_ui = query_editor(_sql, label="Aggregate of an aggregate")
+    subq_aggofagg_query_ui
+    return (subq_aggofagg_query_ui,)
+
+
+@app.cell
+def _(query_output, subq_aggofagg_query_ui, subq_ledger_ui):
+    query_output(subq_ledger_ui.value, subq_aggofagg_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    There is no way to express this with `HAVING` (which only filters) or with a single `GROUP BY` query (which cannot nest aggregates).
+
+    **Use case 2 — filtering on a computed alias.** Here the inner query computes a total and a posting count per category, and the outer query keeps only the categories with a total above 20 **and** more than one posting, referring to the computed columns by their names `total` and `n`.
+
+    Unlike use case 1, this *can* be done with `HAVING` — but `HAVING` cannot reference the output aliases `total` and `n`, so the aggregate expressions have to be repeated in the condition.
+
+    Let us show 2 versions of query for this situation (with subquery and with `HAVING`)
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, total, n
+    FROM (
+      SELECT account, sum(number) AS total, count(number) AS n
+      WHERE account ~ '^Expenses'
+      GROUP BY account
+    )
+    WHERE total > 20 AND n > 1
+    ORDER BY total
+    """
+    subq_alias_query_ui = query_editor(_sql, label="Filtering on a computed alias (subquery)")
+    # subq_alias_query_ui
+    return (subq_alias_query_ui,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, sum(number) AS total, count(number) AS n
+    WHERE account ~ '^Expenses'
+    GROUP BY account
+    HAVING sum(number) > 20 AND count(number) > 1
+    ORDER BY sum(number)
+    """
+    subq_having_equiv_query_ui = query_editor(_sql, label="Equivalent query using HAVING")
+    # subq_having_equiv_query_ui
+    return (subq_having_equiv_query_ui,)
+
+
+@app.cell
+def _(
+    mo,
+    query_output,
+    subq_alias_query_ui,
+    subq_having_equiv_query_ui,
+    subq_ledger_ui,
+):
+    mo.hstack([
+        mo.vstack([
+            subq_alias_query_ui,
+            query_output(subq_ledger_ui.value, subq_alias_query_ui.value)
+        ]),
+        mo.vstack([
+            subq_having_equiv_query_ui,
+            query_output(subq_ledger_ui.value, subq_having_equiv_query_ui.value)
+        ])
+    ])
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### 14.2 Subqueries in WHERE: IN, ANY and ALL
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    A single-column subquery can be used on the right-hand side of the `IN`, `ANY` and `ALL` operators to test a value against the list of values it returns:
+
+    * `x IN (SELECT ...)` — true when `x` equals one of the returned values.
+    * `x <op> ANY (SELECT ...)` — true when the comparison `<op>` holds for **at least one** returned value.
+    * `x <op> ALL (SELECT ...)` — true when the comparison `<op>` holds for **every** returned value.
+
+    Here `<op>` is a comparison operator. With `=`, the `ANY` form is just a more verbose `IN` (`x = ANY (...)` is the same as `x IN (...)`), so `ANY` and `ALL` are mainly useful together with `<` and `>`:
+
+    * `x > ALL (SELECT ...)` means *x is greater than the largest* returned value.
+    * `x > ANY (SELECT ...)` means *x is greater than the smallest* returned value — note that, despite how it reads in English, `> ANY` does **not** mean "greater than all of them".
+
+
+    Note: probably due to a [bug](https://github.com/beancount/beanquery/issues/286) the two-character comparisons `<=` and `>=` are not accepted in front of `ANY` / `ALL` (they fail to parse).
+
+
+    These subqueries are part of the `WHERE` expression, so they work in **both** SELECT query types — the [traditional form](#8-select-query) and the [#table form](#8-select-query) — and the examples below use the traditional form (no `FROM #postings`).
+
+    A common pattern is a two-step selection: an inner aggregate query identifies the accounts of interest, and the outer query then returns the individual postings of those accounts. Here the inner query finds expense accounts whose total reaches 40, and the outer query lists every posting belonging to them:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, date, number
+    WHERE account IN (
+      SELECT account
+      WHERE account ~ '^Expenses'
+      GROUP BY account
+      HAVING sum(number) >= 40
+    )
+    ORDER BY account, date
+    """
+    subq_in_query_ui = query_editor(_sql, label="All postings of accounts, where total of that account > 40")
+    subq_in_query_ui
+    return (subq_in_query_ui,)
+
+
+@app.cell
+def _(query_output, subq_in_query_ui, subq_ledger_ui):
+    query_output(subq_ledger_ui.value, subq_in_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    The next example uses `> ALL` to compare each posting against a set of values computed by a subquery. This is the main reason to reach for `ANY` / `ALL`: beanquery has no scalar subqueries (`number > (SELECT max(number) ...)` is rejected), so a quantified comparison is the way to test a value against a subquery result.
+
+    The query lists the single expense postings that are larger than **every** `Expenses:Books` purchase.
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, date, number
+    WHERE account ~ '^Expenses'
+    AND number > ALL (SELECT number WHERE account ~ 'Expenses:Books')
+    ORDER BY number
+    """
+    subq_all_query_ui = query_editor(_sql, label="Expenses larger than the most expensive book")
+    subq_all_query_ui
+    return (subq_all_query_ui,)
+
+
+@app.cell
+def _(query_output, subq_all_query_ui, subq_ledger_ui):
+    query_output(subq_ledger_ui.value, subq_all_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Swapping `ALL` for `ANY` changes the meaning from "every" to "at least one". The query below lists the expense postings that are smaller than **ANY** `Expenses:Books` purchase — that is, smaller than the *largest* book amount.
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, date, number
+    WHERE account ~ '^Expenses'
+    AND number < ANY (SELECT number WHERE account ~ 'Expenses:Books')
+    ORDER BY number
+    """
+    subq_any_query_ui = query_editor(_sql, label="Expenses smaller than the most expensive book")
+    subq_any_query_ui
+    return (subq_any_query_ui,)
+
+
+@app.cell
+def _(query_output, subq_any_query_ui, subq_ledger_ui):
+    query_output(subq_ledger_ui.value, subq_any_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## 15 Statement operators (OPEN ON, CLOSE ON, CLEAR)
     """)
     return
 
@@ -3808,7 +4112,7 @@ def _(ledger_editor):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 14.1 Opening a Period (OPEN ON clause)
+    #### 15.1 Opening a Period (OPEN ON clause)
     """)
     return
 
@@ -3936,7 +4240,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 14.2 Closing a Period (CLOSE ON clause)
+    #### 15.2 Closing a Period (CLOSE ON clause)
     """)
     return
 
@@ -3995,7 +4299,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 14.3 Clearing Income & Expenses (CLEAR clause)
+    #### 15.3 Clearing Income & Expenses (CLEAR clause)
     """)
     return
 
@@ -4103,7 +4407,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 14.4 Example Statements
+    #### 15.4 Example Statements
     """)
     return
 
@@ -4196,7 +4500,7 @@ def _(ledger_ui_open_close, query_output, sql_ui_bal_sheet):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 15 High-level shortcuts (JOURNAL, BALANCE, PRINT)
+    ## 16 High-level shortcuts (JOURNAL, BALANCE, PRINT)
     """)
     return
 
@@ -4245,7 +4549,7 @@ def _(ledger_editor):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### 15.1 Selecting Journals (JOURNAL query)
+    ### 16.1 Selecting Journals (JOURNAL query)
     """)
     return
 
@@ -4300,7 +4604,7 @@ def _(ledger_ui_journal, query_output, sql_ui_journal_balance):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### 15.2 Selecting Balances (BALANCES query)
+    ### 16.2 Selecting Balances (BALANCES query)
     """)
     return
 
@@ -4408,7 +4712,7 @@ def _(ledger_ui_journal, query_output, sql_ui_balances_where_per_account):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### 15.3 Print (PRINT query)
+    ### 16.3 Print (PRINT query)
     """)
     return
 
@@ -4457,7 +4761,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 16 Usage of beanquery with Data Frames
+    ## 17 Usage of beanquery with Data Frames
     """)
     return
 
@@ -4473,7 +4777,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 17 Working around beanquery limitations
+    ## 18 Working around beanquery limitations
     """)
     return
 
@@ -4485,11 +4789,11 @@ def _(mo):
 
     _#TODO: add information_
 
-    ### 17.1 No PIVOT functionality
+    ### 18.1 No PIVOT functionality
 
     * Use dataframes
 
-    ### 17.2 No table joining
+    ### 18.2 No table joining
 
     * Use built in functions
     * Use data frames
@@ -4500,7 +4804,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 18 Example queries for typical situations
+    ## 19 Example queries for typical situations
     """)
     return
 
@@ -4518,7 +4822,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### 18.1 Simple journal ledger of expense transactions
+    ### 19.1 Simple journal ledger of expense transactions
     """)
     return
 
@@ -4608,7 +4912,7 @@ def _(
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### 18.2 Net Worth and P&L-like reports in multi-commodities ledger
+    ### 19.2 Net Worth and P&L-like reports in multi-commodities ledger
     """)
     return
 
@@ -4787,7 +5091,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 19 Appendixes
+    ## 20 Appendixes
     """)
     return
 
@@ -4795,7 +5099,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### 19.1 Appendix A: Shell variables
+    ### 20.1 Appendix A: Shell variables
     """)
     return
 
@@ -4827,7 +5131,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### 19.2 Appendix B: Display precision
+    ### 20.2 Appendix B: Display precision
 
     Let us discuss the subject of a display precision. Beanquery does not assume a fixed number of decimal digits for a currency. Instead, the display precision is **inferred from the ledger**: while parsing, beancount looks at every amount and, for each currency, records how many fractional digits it was written with. The precision then used to display that currency is the **most frequently occurring** number of fractional digits seen for it (the statistical mode).
 
