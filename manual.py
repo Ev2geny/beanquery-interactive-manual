@@ -973,12 +973,78 @@ def _(mo):
     return
 
 
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT 
+         date, account, payee+' || '+narration as my_description, position
+    WHERE 
+          "trip-london" IN tags
+          AND NOT payee = "John"
+    """
+    sql_ui_operators = query_editor(_sql, label=r"Operators demo  IN, NOT, =, +")
+    # sql_ui_operators
+    return (sql_ui_operators,)
+
+
+@app.cell
+def _():
+    # query_output(operators_ledger_ui.value, sql_ui_operators.value) 
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT 
+         date, account, payee, narration, position
+    WHERE 
+          account = 'Expenses:Misc'
+          AND payee IS NULL
+    """
+    sql_ui_operators_null = query_editor(_sql, label=r"Operators demo =, IS NULL")
+    # sql_ui_operators_null
+    return (sql_ui_operators_null,)
+
+
+@app.cell
+def _():
+    # query_output(operators_ledger_ui.value, sql_ui_operators_null.value) 
+    return
+
+
+@app.cell
+def _(
+    mo,
+    operators_ledger_ui,
+    query_output,
+    sql_ui_operators,
+    sql_ui_operators_null,
+):
+    mo.hstack([
+        mo.vstack([
+            sql_ui_operators,
+            query_output(operators_ledger_ui.value, sql_ui_operators.value) 
+        ]),
+        mo.vstack([
+            sql_ui_operators_null,
+            query_output(operators_ledger_ui.value, sql_ui_operators_null.value) 
+        ])
+
+    ])
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     #### 9.1.2 String operators
 
-    **Comparing strings:**
+    <u>**String modifications:**</u>
+
+    * \+ (string concatentation)
+
+    <u>**Comparing strings:**</u>
 
     * = (equality), != (inequality)
     * `<` , `<=`, `>`, `>=` ([lexical comparisons](https://www.geeksforgeeks.org/python/string-comparison-in-python]))  _?? What would be an example of any practical usage in beanquery_
@@ -986,13 +1052,26 @@ def _(mo):
 
     **Comparing strings to regular expression patterns:**
 
-    * `mystring ~ regex` (case insensitive regexp)
-    * `regex ?~ mystring` (case sensitive regexp. Note, that it has inverted argument order !!!)
-    * `mystring !~ regex` (inverse of ~, same as `NOT ( ... ~ ...)`)
+    beanquery uses Python [`re`](https://docs.python.org/3/library/re.html) regular expressions, matched as a **substring search** — the pattern may match *anywhere* in the string (use `^` and `$` to anchor). There are three match operators, `~`, `!~` and `?~`, which differ in **argument order** and **default case-sensitivity**:
 
-    **Modifications:**
+    * `mystring ~ regex` — pattern on the **right**, **case-insensitive** by default
+    * `mystring !~ regex` — negation of `~` (same as `NOT (mystring ~ regex)`)
+    * `regex ?~ mystring` — pattern on the **left** (inverted argument order !!!), **case-sensitive** by default
 
-    * \+ (string concatentation)
+    The default case-sensitivity can be flipped with an inline regex flag inside the pattern: `(?i)` forces a **case-insensitive** match, and the scoped `(?-i:...)` forces a **case-sensitive** one. This yields all four combinations of argument order and case-sensitivity:
+
+    | Argument order | Case-sensitivity | How to write it | Negation |
+    |---|---|---|---|
+    | string → pattern | insensitive (default) | `mystring ~ 'regex'` | `mystring !~ 'regex'` |
+    | string → pattern | sensitive | `mystring ~ '(?-i:regex)'` | `mystring !~ '(?-i:regex)'` |
+    | pattern → string | sensitive (default) | `'regex' ?~ mystring` | `NOT ('regex' ?~ mystring)` |
+    | pattern → string | insensitive | `'(?i)regex' ?~ mystring` | `NOT ('(?i)regex' ?~ mystring)` |
+
+    **Negation:** only the `string → pattern` order has a dedicated negation operator, `!~`. There is no negated form of `?~` (`!?~` and `?!~` do not exist), so a `pattern → string` match must be negated with `NOT ( ... )`.
+
+    Let us demonstrate some of this
+
+    **string -> pattern reqular expressions**
     """)
     return
 
@@ -1001,20 +1080,18 @@ def _(mo):
 def _(query_editor):
     _sql = """\
     SELECT 
-         date, account, payee+' || '+narration as my_description, position
+         date, account, narration
     WHERE 
-          account ~ '^expenses'
-          AND "trip-london" IN tags
-          AND NOT payee = "John"
+          account ~ 'expenses'
     """
-    sql_ui_operators = query_editor(_sql, label=r"Operators demo regexp, IN, NOT, =, +")
-    sql_ui_operators
-    return (sql_ui_operators,)
+    sql_re_string_pattern_ci_ui = query_editor(_sql, label=r"string -> pattern regex case-insensitive")
+    # sql_re_string_pattern_ci_ui
+    return (sql_re_string_pattern_ci_ui,)
 
 
 @app.cell
-def _(operators_ledger_ui, query_output, sql_ui_operators):
-    query_output(operators_ledger_ui.value, sql_ui_operators.value) 
+def _():
+    # query_output(operators_ledger_ui.value, sql_re_string_pattern_ci_ui.value) 
     return
 
 
@@ -1022,19 +1099,18 @@ def _(operators_ledger_ui, query_output, sql_ui_operators):
 def _(query_editor):
     _sql = """\
     SELECT 
-         date, account, payee,narration, position
+         date, account, narration
     WHERE 
-          NOT payee IS NOT NULL
-          and '^Expenses' ?~ account
+          account ~ '(?-i:Expenses)'
     """
-    sql_ui_operators_not_null = query_editor(_sql, label=r"Operators demo with NOT NULL and case-sensitive regex")
-    sql_ui_operators_not_null
-    return (sql_ui_operators_not_null,)
+    sql_re_string_pattern_cs_ui = query_editor(_sql, label=r"string -> pattern regex case-sensitive")
+    # sql_re_string_pattern_cs_ui
+    return (sql_re_string_pattern_cs_ui,)
 
 
 @app.cell
-def _(operators_ledger_ui, query_output, sql_ui_operators_not_null):
-    query_output(operators_ledger_ui.value, sql_ui_operators_not_null.value) 
+def _():
+    # query_output(operators_ledger_ui.value, sql_re_string_pattern_cs_ui.value)
     return
 
 
@@ -1042,18 +1118,113 @@ def _(operators_ledger_ui, query_output, sql_ui_operators_not_null):
 def _(query_editor):
     _sql = """\
     SELECT 
-         date, account, payee,narration, position
+         date, account, narration
     WHERE 
-          'Misc' IN account
+          'Expenses' IN account
     """
     sql_ui_operators_in_substring = query_editor(_sql, label=r"Operators substring")
-    sql_ui_operators_in_substring
+    # sql_ui_operators_in_substring
     return (sql_ui_operators_in_substring,)
 
 
 @app.cell
-def _(operators_ledger_ui, query_output, sql_ui_operators_in_substring):
-    query_output(operators_ledger_ui.value, sql_ui_operators_in_substring.value)
+def _():
+    # query_output(operators_ledger_ui.value, sql_ui_operators_in_substring.value)
+    return
+
+
+@app.cell
+def _(
+    mo,
+    operators_ledger_ui,
+    query_output,
+    sql_re_string_pattern_ci_ui,
+    sql_re_string_pattern_cs_ui,
+    sql_ui_operators_in_substring,
+):
+    mo.hstack([
+        mo.vstack([
+            sql_re_string_pattern_ci_ui,
+            query_output(operators_ledger_ui.value, sql_re_string_pattern_ci_ui.value) 
+        ]),
+        mo.vstack([
+            sql_re_string_pattern_cs_ui,
+            query_output(operators_ledger_ui.value, sql_re_string_pattern_cs_ui.value) 
+        ]),
+        mo.vstack([
+            sql_ui_operators_in_substring,
+            query_output(operators_ledger_ui.value, sql_ui_operators_in_substring.value) 
+        ])
+    ])
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **pattern -> string regular expressions**
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT 
+         date, account, narration
+    WHERE 
+          '(?i)expenses' ?~ account
+    """
+    sql_re_pattern_string_ci_ui = query_editor(_sql, label=r"pattern -> string regex case-insensitive")
+    # sql_re_pattern_string_ci_ui
+
+    return (sql_re_pattern_string_ci_ui,)
+
+
+@app.cell
+def _():
+    # query_output(operators_ledger_ui.value,sql_re_pattern_string_ci_ui.value) 
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT 
+         date, account, narration
+    WHERE 
+          'Expenses' ?~ account
+    """
+    sql_re_pattern_string_cs_ui = query_editor(_sql, label=r"pattern -> string regex case-sensitive")
+    # sql_re_pattern_string_cs_ui
+    return (sql_re_pattern_string_cs_ui,)
+
+
+@app.cell
+def _():
+    # query_output(operators_ledger_ui.value, sql_re_pattern_string_cs_ui.value) 
+    return
+
+
+@app.cell
+def _(
+    mo,
+    operators_ledger_ui,
+    query_output,
+    sql_re_pattern_string_ci_ui,
+    sql_re_pattern_string_cs_ui,
+):
+    mo.hstack([
+        mo.vstack([
+            sql_re_pattern_string_ci_ui,
+            query_output(operators_ledger_ui.value, sql_re_pattern_string_ci_ui.value) 
+        ]),
+        mo.vstack([
+            sql_re_pattern_string_cs_ui,
+            query_output(operators_ledger_ui.value, sql_re_pattern_string_cs_ui.value) 
+        ])
+
+    ])
     return
 
 
