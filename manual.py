@@ -967,8 +967,9 @@ def _(mo):
     * AND (logical conjunction)
     * OR (logical disjunction)
     * NOT (logical negation)
-    * IN (set membership)
     * IS NULL (check if value is NULL), IS NOT NULL
+
+    (Set membership — `IN` / `NOT IN` — and the quantified `ANY` / `ALL` operators are covered separately under [Set and collection operators](#915-set-and-collection-operators).)
     """)
     return
 
@@ -1177,7 +1178,6 @@ def _(query_editor):
     """
     sql_re_pattern_string_ci_ui = query_editor(_sql, label=r"pattern -> string regex case-insensitive")
     # sql_re_pattern_string_ci_ui
-
     return (sql_re_pattern_string_ci_ui,)
 
 
@@ -1250,6 +1250,166 @@ def _(mo):
     * date BETWEEN start AND end (check date range, inclusive date range)
     * date +/- [interval(str)](#1225-intervalstr)
     * date +/- int  (the same as `date +/- interval('<int> days')`)
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### 9.1.5 IN, ANY, ALL
+
+    The operators in this group test a value against a **collection** of values rather than against a single value. The collection on the right-hand side is a list- or set-valued expression — most often a set-valued column (such as `accounts`, `tags`, `links`; see section 10.2) or a [subquery](#14-subqueries).
+
+    **`IN` and `NOT IN` — set membership**
+
+    * `value IN collection` — true when `value` equals one of the elements of the collection.
+    * `value NOT IN collection` — true when it equals none of them.
+
+    When the collection is a column no brackets are needed (`'Assets:Cash' IN accounts`); brackets are used only to write an explicit list (`account IN ('Assets:Cash', 'Assets:Bank')`) or to wrap a subquery. The `IN` keyword is also used for substring testing on plain strings (`substr IN string`) — see [String operators](#912-string-operators).
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **`ANY` and `ALL` — comparison against any / every element**
+
+    Every comparison shown so far compares one value against **one** other value (`number > 100`, `account ~ 'Food'`). The `ANY` and `ALL` operators generalise this: they compare one value against a **whole collection** of values at once, and reduce the result to a single true/false:
+
+    * `value <op> ANY ( <collection> )` — true when the comparison `<op>` holds for **at least one** element of the collection.
+    * `value <op> ALL ( <collection> )` — true when the comparison `<op>` holds for **every** element of the collection (and, vacuously, true when the collection is empty).
+
+    `<op>` is an ordinary comparison operator — `=`, `!=`, `<`, `>` — or one of the [regular-expression match operators](#912-string-operators) (`~`, `?~`, `!~`). *(Due to a parser limitation, `<=` and `>=` currently cannot be used with `ANY` / `ALL` — use `<` / `>` instead.)*
+
+    To picture the meaning, suppose the collection were the numbers `{1, 4, 9}`:
+
+    * `5 > ANY (...)` is **true** — 5 is greater than at least one element (1 and 4);
+    * `5 > ALL (...)` is **false** — 5 is not greater than every element (it is not greater than 9);
+    * `0 < ALL (...)` is **true** — 0 is smaller than every element.
+
+    A useful special case: `value = ANY (...)` — "equal to at least one element" — is exactly set membership, so it means the same as `value IN (...)`. The other operators (`<`, `>`, `~`, `?~`, …) are where `ANY` / `ALL` do something that plain `IN` cannot.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **The brackets are compulsory — and they are *not* a function call.**
+
+    `ANY` and `ALL` are **operators**, not functions, even though `ANY(accounts)` looks like a function call. The parentheses are a mandatory part of the operator's syntax — they delimit the right-hand operand (the collection). The shape is fixed:
+
+    ```
+    value <op> ANY ( collection )
+    value <op> ALL ( collection )
+    ```
+
+    Omitting the brackets is a syntax error (`... ?~ ANY accounts` does not parse). A space before the bracket is allowed, so `ANY (accounts)` and `ANY(accounts)` are equivalent — and that permitted space is itself a hint that this is an operator keyword followed by a parenthesised operand, not a function being called. (By contrast, `IN` does *not* require brackets around a column.)
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **What can go inside the brackets.** The collection must be a **list- or set-valued expression**. There are two common sources:
+
+    1. A **set-valued column** — but only if it carries an element **type**. Beancount exposes several set columns, yet only `accounts` qualifies for `ANY` / `ALL`:
+        * `accounts` — the set of all accounts of a transaction, typed `set[str]` — **works with `ANY` / `ALL`**
+        * `other_accounts` (postings table, see section 10.1.3), `tags`, `links` — registered as plain **untyped** sets, so they work only with `IN`, *not* with `ANY` / `ALL`
+    2. A **subquery** returning a single column (covered separately in [section 14](#14-subqueries)).
+
+    The examples below use the `accounts` column. The first matches a regular expression against the accounts of each transaction — `':Food' ?~ ANY(accounts)` is true for a transaction when **at least one** of its accounts matches the pattern:
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2024-01-01 open Assets:Bank
+    2024-01-01 open Assets:Cash
+    2024-01-01 open Expenses:Food
+    2024-01-01 open Expenses:Transport
+    2024-01-01 open Expenses:Misc
+
+    2024-01-02 * "Groceries"
+      Expenses:Food   40 USD
+      Assets:Bank
+
+    2024-01-05 * "Bus ticket"
+      Expenses:Transport  15 USD
+      Assets:Cash
+
+    2024-01-06 * "Supermarket"
+      Expenses:Food   40 USD
+      Expenses:Misc   20 USD
+      Assets:Cash
+
+    2024-01-09 * "Restaurant"
+      Expenses:Food   60 USD
+      Assets:Cash
+    """
+    arr_ledger_ui = ledger_editor(_ledger, label="Ledger for ANY/ALL over columns")
+    arr_ledger_ui
+    return (arr_ledger_ui,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date, narration
+    FROM #transactions
+    WHERE 'Expenses:Food' ?~ ANY(accounts)
+    ORDER BY date
+    """
+    arr_any_query_ui = query_editor(_sql, label="All transactions with Expenses:Food account involved (ANY)")
+    arr_any_query_ui
+    return (arr_any_query_ui,)
+
+
+@app.cell
+def _(arr_any_query_ui, arr_ledger_ui, query_output):
+    query_output(arr_ledger_ui.value, arr_any_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Using `ALL` instead requires **every** element to match. The query below finds **cash payments used to buy food only** — `Assets:Cash` postings whose transaction contains no account other than the cash account and `Expenses:Food`. (The natural way to write this would be `'Expenses:Food' ?~ ALL(other_accounts)`, but `other_accounts` is an untyped set that `ANY` / `ALL` cannot use — see the note below — so we match against `accounts` instead and allow the cash account in the pattern.) This keeps `Restaurant` (cash → food) but drops `Supermarket` (cash → food **and** misc):
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date, account, narration, position
+    WHERE account = 'Assets:Cash' AND '(?i)assets:cash|expenses:food' ?~ ALL(accounts)
+    ORDER BY date
+    """
+    arr_all_query_ui = query_editor(_sql, label="Cash payments, which were used to purchase food only (ALL)")
+    arr_all_query_ui
+    return (arr_all_query_ui,)
+
+
+@app.cell
+def _(arr_all_query_ui, arr_ledger_ui, query_output):
+    query_output(arr_ledger_ui.value, arr_all_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    A few more points worth knowing:
+
+    * As shown above, `value = ANY(col)` is just `value IN col`; reach for `ANY` / `ALL` when you need a *different* comparison (`<`, `>`, `~`, `?~`, …).
+    * The built-in `has_account(regexp)` function is exactly this pattern — it is shorthand for `('(?i)' + regexp) ?~ ANY(accounts)`.
+    * `ANY` / `ALL` do not work with the **other_accounts** columns, probably due to a [bug](https://github.com/beancount/beanquery/issues/288).
     """)
     return
 
