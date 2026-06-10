@@ -762,21 +762,30 @@ def _(mo):
 
     ```text
     SELECT [DISTINCT] [<targets>|*]
-    [FROM #<table-name> | ( <select-query> )]
+    [FROM (#<table-name> | "<table-name>" | <table-name>) | ( <select-query> )]
     [WHERE <posting-filter-logical-expression>]
     [GROUP BY <groups> [HAVING <aggregate-filter-expression>]]
     [ORDER BY <groups> [ASC|DESC]]
     [LIMIT num]
     ```
-    Let us call it the **#table** query form. (The `( <select-query> )` alternative in the FROM clause is a subquery — see [section 14](#14-subqueries).)
+    In this form the `FROM` clause can include either a table name of a subquery. The subqueries are discussed in the section [section 14](#14-subqueries).
+
+    The table name can be presented in 3 different forms:
+
+    - with the `#` symbol in front (E.g. `#transactions`)
+    - inside the double quotes (E.g. `"transactions"`)
+    - just by a table name (E.g. `transactions`)
+
+    Let us call this form the **#table** query form, even though not only #tables are supported (historically #table form was the 1st ones to be introduced, hence the name).
+
 
     Note that:
-    * The **#table** form is activated either by adding the # symbol in front of the table name, or by putting a subquery `( <select-query> )` in the FROM clause (see [section 14](#14-subqueries))
+    * The **#table** form is activated either by naming a table in the FROM clause — as `#<table-name>`, `"<table-name>"`, or `<table-name>` — or by putting a subquery `( <select-query> )` there (see [section 14](#14-subqueries))
     * The **#table** form allows querying tables other than the postings table as well as querying of sub-queries (which act as a table), but when used to query the postings table (which is possible), it lacks some functionality available in the traditional form, namely the `[OPEN ON <date>] [CLOSE [ON <date>]] [CLEAR]` part. (This may actually be a [bug](https://github.com/beancount/beanquery/issues/274), rather than a feature.)
 
     So, to summarize:
     * In the traditional BQL, the FROM clause is used to describe the posting-level filter, not to identify the data source
-    * In the **#table** form, the FROM clause identifies the data source — either a table whose name is preceded by the # symbol, or a subquery
+    * In the **#table** form, the FROM clause identifies the data source — either a table (named with `#`, double quotes, or bare) or a subquery
 
     In addition to a table reference, the FROM clause can also contain a **subquery** — a parenthesised `SELECT` whose result is used as the data source (a *derived table*). Subqueries may also appear inside `WHERE` expressions, together with the `IN`, `ANY` and `ALL` operators. Subqueries are covered separately in [section 14](#14-subqueries).
 
@@ -809,7 +818,7 @@ def _(ledger_editor):
 @app.cell
 def _(mo):
     mo.md(r"""
-    Let us create a query which shows postings to the account `Expenses:Food`
+    Let us create a query which shows postings to the account `Expenses:Food` in 4 different ways.
     """)
     return
 
@@ -818,7 +827,7 @@ def _(mo):
 def _(query_editor):
     _sql = """\
     SELECT *
-    WHERE account = "Expenses:Food"
+    WHERE account = 'Expenses:Food'
 
     """
     sql_ui_traditional = query_editor(_sql, label="Traditional query")
@@ -831,11 +840,35 @@ def _(query_editor):
     _sql = """\
     SELECT *
     FROM #postings
-    WHERE account = "Expenses:Food"
+    WHERE account = 'Expenses:Food'
     """
-    sql_ui_hash_table = query_editor(_sql, label=r"The same query, but using the \#table syntax")
+    sql_ui_hash_table = query_editor(_sql, label=r"The same, but using the \#table syntax")
     # sql_ui_hash_table
     return (sql_ui_hash_table,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT *
+    FROM "postings"
+    WHERE account = 'Expenses:Food'
+    """
+    sql_ui_quoted_table = query_editor(_sql, label=r"The same, but using the quoted table syntax")
+    # sql_ui_hash_table
+    return (sql_ui_quoted_table,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT *
+    FROM postings
+    WHERE account = 'Expenses:Food'
+    """
+    sql_ui_bare_table = query_editor(_sql, label=r"The same, but using the bare table syntax")
+    # sql_ui_hash_table
+    return (sql_ui_bare_table,)
 
 
 @app.cell
@@ -861,8 +894,32 @@ def _(
 
 
 @app.cell
+def _(
+    mo,
+    query_output,
+    simple_ledger_ui,
+    sql_ui_bare_table,
+    sql_ui_quoted_table,
+):
+    mo.hstack([
+        mo.vstack([
+            sql_ui_quoted_table,
+            query_output(simple_ledger_ui.value, sql_ui_quoted_table.value)   
+        ]),
+        mo.vstack([
+            sql_ui_bare_table,
+            query_output(simple_ledger_ui.value, sql_ui_bare_table.value)
+        ]) 
+
+    ])
+    return
+
+
+@app.cell
 def _(mo):
     mo.md(r"""
+    Note, that later in the manual whenever the #table form is used in examples, it can also be replaced the "quoted" table name as well as bare table name forms.
+
     Note, that here we use the wildcard symbol (*) to list some columns, instead of specifying column names manually.
 
     Difference to SQL: in BQL using a wildcard as the target list (“*”) selects a good default list of columns, while in traditional SQL the `*` denotes the complete set of columns available in the table.
@@ -1281,7 +1338,7 @@ def _(mo):
     * `value <op> ANY ( <collection> )` — true when the comparison `<op>` holds for **at least one** element of the collection.
     * `value <op> ALL ( <collection> )` — true when the comparison `<op>` holds for **every** element of the collection (and, vacuously, true when the collection is empty).
 
-    `<op>` is an ordinary comparison operator — `=`, `!=`, `<`, `>` — or one of the [regular-expression match operators](#912-string-operators) (`~`, `?~`, `!~`). *(Due to a parser limitation, `<=` and `>=` currently cannot be used with `ANY` / `ALL` — use `<` / `>` instead.)*
+    `<op>` is an ordinary comparison operator — `=`, `!=`, `<`, `>` — or one of the [regular-expression match operators](#912-string-operators) (`~`, `?~`, `!~`). *(Until [this](https://github.com/beancount/beanquery/issues/286) bug is resolved, `<=` and `>=` currently cannot be used with `ANY` / `ALL` — use `<` / `>` instead.)*
 
     To picture the meaning, suppose the collection were the numbers `{1, 4, 9}`:
 
@@ -1289,7 +1346,7 @@ def _(mo):
     * `5 > ALL (...)` is **false** — 5 is not greater than every element (it is not greater than 9);
     * `0 < ALL (...)` is **true** — 0 is smaller than every element.
 
-    A useful special case: `value = ANY (...)` — "equal to at least one element" — is exactly set membership, so it means the same as `value IN (...)`. The other operators (`<`, `>`, `~`, `?~`, …) are where `ANY` / `ALL` do something that plain `IN` cannot.
+    Note, that usage of `value = ANY (...)` is equivalent to  `value IN (...)`. It is the other operators (`<`, `>`, `~`, `?~`, …) where `ANY` / `ALL` do something that plain `IN` cannot.
     """)
     return
 
@@ -1318,8 +1375,10 @@ def _(mo):
 
     1. A **set-valued column** — but only if it carries an element **type**. Beancount exposes several set columns, yet only `accounts` qualifies for `ANY` / `ALL`:
         * `accounts` — the set of all accounts of a transaction, typed `set[str]` — **works with `ANY` / `ALL`**
-        * `other_accounts` (postings table, see section 10.1.3), `tags`, `links` — registered as plain **untyped** sets, so they work only with `IN`, *not* with `ANY` / `ALL`
-    2. A **subquery** returning a single column (covered separately in [section 14](#14-subqueries)).
+
+        Note, that   `other_accounts`  `tags`, `links` at the moment work only with `IN`, *not* with `ANY` / `ALL` (this is probably can be considered to be a [bug](https://github.com/beancount/beanquery/issues/288))
+
+    1. A **subquery** returning a single column (covered separately in [section 14](#14-subqueries)).
 
     The examples below use the `accounts` column. The first matches a regular expression against the accounts of each transaction — `':Food' ?~ ANY(accounts)` is true for a transaction when **at least one** of its accounts matches the pattern:
     """)
@@ -1379,7 +1438,8 @@ def _(arr_any_query_ui, arr_ledger_ui, query_output):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Using `ALL` instead requires **every** element to match. The query below finds **cash payments used to buy food only** — `Assets:Cash` postings whose transaction contains no account other than the cash account and `Expenses:Food`. (The natural way to write this would be `'Expenses:Food' ?~ ALL(other_accounts)`, but `other_accounts` is an untyped set that `ANY` / `ALL` cannot use — see the note below — so we match against `accounts` instead and allow the cash account in the pattern.) This keeps `Restaurant` (cash → food) but drops `Supermarket` (cash → food **and** misc):
+    Using `ALL` instead requires **every** element to match. The query below finds **cash payments used to buy food only**<br>
+    Note: `other_accounts` other account would be a better choice to use here, but at the moment this does not work probably due to a [bug](https://github.com/beancount/beanquery/issues/288)
     """)
     return
 
@@ -1387,11 +1447,12 @@ def _(mo):
 @app.cell
 def _(query_editor):
     _sql = """\
-    SELECT date, account, narration, position
-    WHERE account = 'Assets:Cash' AND '(?i)assets:cash|expenses:food' ?~ ALL(accounts)
+    SELECT date, narration
+    FROM #transactions
+    WHERE  '(?i)assets:cash|expenses:food' ?~ ALL(accounts)
     ORDER BY date
     """
-    arr_all_query_ui = query_editor(_sql, label="Cash payments, which were used to purchase food only (ALL)")
+    arr_all_query_ui = query_editor(_sql, label="Transactions were cash was used to purchase food only and nothing else (ALL)")
     arr_all_query_ui
     return (arr_all_query_ui,)
 
@@ -1399,18 +1460,6 @@ def _(query_editor):
 @app.cell
 def _(arr_all_query_ui, arr_ledger_ui, query_output):
     query_output(arr_ledger_ui.value, arr_all_query_ui.value)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    A few more points worth knowing:
-
-    * As shown above, `value = ANY(col)` is just `value IN col`; reach for `ANY` / `ALL` when you need a *different* comparison (`<`, `>`, `~`, `?~`, …).
-    * The built-in `has_account(regexp)` function is exactly this pattern — it is shorthand for `('(?i)' + regexp) ?~ ANY(accounts)`.
-    * `ANY` / `ALL` do not work with the **other_accounts** columns, probably due to a [bug](https://github.com/beancount/beanquery/issues/288).
-    """)
     return
 
 
