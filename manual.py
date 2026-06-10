@@ -394,13 +394,16 @@ def _(files_downloaded, mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Note that throughout the document, unresolved questions the author had about beanquery functionality are marked with double question marks.
+    Throughout the document, the following conventions were used to indicate special elements:
 
-    E.g.: ?? Why do we need this.
+    * Unresolved questions the author had about beanquery functionality are marked with double question marks.<br>
+       E.g.: ?? Why do we need this.
 
-    There are also some TODOs, marked with #TODO. E.g.:
-
+    * Some TODOs, marked with #TODO. E.g.:<br>
     _#TODO: we need to investigate this_
+
+    * beanquery issues are marked as **bql_iss_\<number>**
+    * beanquery Pull Requests are marked as **bql_pr_\<number>**
     """)
     return
 
@@ -781,7 +784,7 @@ def _(mo):
 
     Note that:
     * The **#table** form is activated either by naming a table in the FROM clause — as `#<table-name>`, `"<table-name>"`, or `<table-name>` — or by putting a subquery `( <select-query> )` there (see [section 14](#14-subqueries))
-    * The **#table** form allows querying tables other than the postings table as well as querying of sub-queries (which act as a table), but when used to query the postings table (which is possible), it lacks some functionality available in the traditional form, namely the `[OPEN ON <date>] [CLOSE [ON <date>]] [CLEAR]` part. (This may actually be a [bug](https://github.com/beancount/beanquery/issues/274), rather than a feature.)
+    * The **#table** form allows querying tables other than the postings table as well as querying of sub-queries (which act as a table), but when used to query the postings table (which is possible), it lacks some functionality available in the traditional form, namely the `[OPEN ON <date>] [CLOSE [ON <date>]] [CLEAR]` part. (This may actually be a [bql_iss_274](https://github.com/beancount/beanquery/issues/274), rather than a feature.)
 
     So, to summarize:
     * In the traditional BQL, the FROM clause is used to describe the posting-level filter, not to identify the data source
@@ -1338,7 +1341,7 @@ def _(mo):
     * `value <op> ANY ( <collection> )` — true when the comparison `<op>` holds for **at least one** element of the collection.
     * `value <op> ALL ( <collection> )` — true when the comparison `<op>` holds for **every** element of the collection (and, vacuously, true when the collection is empty).
 
-    `<op>` is an ordinary comparison operator — `=`, `!=`, `<`, `>` — or one of the [regular-expression match operators](#912-string-operators) (`~`, `?~`, `!~`). *(Until [this](https://github.com/beancount/beanquery/issues/286) bug is resolved, `<=` and `>=` currently cannot be used with `ANY` / `ALL` — use `<` / `>` instead.)*
+    `<op>` is an ordinary comparison operator — `=`, `!=`, `<`, `>` — or one of the [regular-expression match operators](#912-string-operators) (`~`, `?~`, `!~`). *(Until [bql_iss_286](https://github.com/beancount/beanquery/issues/286) bug is resolved, `<=` and `>=` currently cannot be used with `ANY` / `ALL` — use `<` / `>` instead.)*
 
     To picture the meaning, suppose the collection were the numbers `{1, 4, 9}`:
 
@@ -1376,7 +1379,7 @@ def _(mo):
     1. A **set-valued column** — but only if it carries an element **type**. Beancount exposes several set columns, yet only `accounts` qualifies for `ANY` / `ALL`:
         * `accounts` — the set of all accounts of a transaction, typed `set[str]` — **works with `ANY` / `ALL`**
 
-        Note, that   `other_accounts`  `tags`, `links` at the moment work only with `IN`, *not* with `ANY` / `ALL` (this is probably can be considered to be a [bug](https://github.com/beancount/beanquery/issues/288))
+        Note, that   `other_accounts`  `tags`, `links` at the moment work only with `IN`, *not* with `ANY` / `ALL` (this is probably can be considered to be a [bql_iss_288](https://github.com/beancount/beanquery/issues/288))
 
     1. A **subquery** returning a single column (covered separately in [section 14](#14-subqueries)).
 
@@ -1439,7 +1442,7 @@ def _(arr_any_query_ui, arr_ledger_ui, query_output):
 def _(mo):
     mo.md(r"""
     Using `ALL` instead requires **every** element to match. The query below finds **cash payments used to buy food only**<br>
-    Note: `other_accounts` other account would be a better choice to use here, but at the moment this does not work probably due to a [bug](https://github.com/beancount/beanquery/issues/288)
+    Note: `other_accounts` other account would be a better choice to use here, but at the moment this does not work probably due to a [bql_iss_288](https://github.com/beancount/beanquery/issues/288)
     """)
     return
 
@@ -1593,7 +1596,7 @@ def _(mo):
     ...
     ```
 
-    To make things even more confusing, note that when it comes to the transactions table, then probably due to the [bug](https://github.com/beancount/beanquery/issues/277) the `.help FROM` command lists a few more columns for the transactions table, than are available via the [`.describe transactions`](#6-available-tables-introduction) command, e.g. the [id](#1021-the-id-column) column, which is not available via the `.describe transactions`
+    To make things even more confusing, note that when it comes to the transactions table, then probably due to the [bql_iss_277](https://github.com/beancount/beanquery/issues/277) the `.help FROM` command lists a few more columns for the transactions table, than are available via the [`.describe transactions`](#6-available-tables-introduction) command, e.g. the [id](#1021-the-id-column) column, which is not available via the `.describe transactions`
 
 
     ```text
@@ -2227,7 +2230,7 @@ def _(mo):
     A special column exists that identifies each transaction uniquely: “id”. It is a unique hash automatically computed from the transaction and should be stable between runs.
     This hash is derived from the contents of the transaction object itself (if you change something about the transaction, e.g. you edit the narration, the id will change).
 
-    Note: even though the `id` field logically belongs to the transaction, it is not available in the `transactions` table via the `.describe transactions` command (an [issue](https://github.com/beancount/beanquery/issues/277) has been raised about this). The only way to find it is to look in the postings using a traditional query.
+    Note: even though the `id` field logically belongs to the transaction, it is not available in the `transactions` table via the `.describe transactions` command (a [bql_iss_277](https://github.com/beancount/beanquery/issues/277) has been raised about this). The only way to find it is to look in the postings using a traditional query.
     """)
     return
 
@@ -3094,7 +3097,7 @@ def _(mo):
     The BQL function `interval('...')` creates an object of type `relativedelta` that can be used to modify dates using the **[+/-](#914-date-operators)** operator. Example: `date - interval('2 month')`.
     (plural s can be appended)
 
-    Instead of `month`, you can use: `day(s)`, `year(s)`, and, once the [PR280](https://github.com/beancount/beanquery/pull/280) is accepted, also `week(s)`, `decade(s)`, `century/centuries`
+    Instead of `month`, you can use: `day(s)`, `year(s)`, and, once the [bql_pr_280](https://github.com/beancount/beanquery/pull/280) is accepted, also `week(s)`, `decade(s)`, `century/centuries`
 
     This, for instance, can be used to select all expenses for the last 4 months:
 
@@ -3495,7 +3498,7 @@ def _(mo):
     coalesce(expr1, expr2, ...) -> value
     ```
 
-    Note: at the time of writing this function is [not displayed by the `.help targets` shell command](https://github.com/beancount/beanquery/issues/284)
+    Note: at the time of writing this function is not displayed by the `.help targets` shell command (see [bql_iss_284](https://github.com/beancount/beanquery/issues/284))
 
     Returns the value of the **first argument that is not `NULL`**, evaluating the arguments left to right. If every argument is `NULL`, the result is `NULL`. This is the standard SQL `COALESCE`, typically used to supply a fallback value when something might be missing. The function name is case-insensitive, so `coalesce(...)` and `COALESCE(...)` are equivalent.
 
@@ -4333,7 +4336,7 @@ def _(mo):
     * `x > ANY (SELECT ...)` means *x is greater than the smallest* returned value — note that, despite how it reads in English, `> ANY` does **not** mean "greater than all of them".
 
 
-    Note: probably due to a [bug](https://github.com/beancount/beanquery/issues/286) the two-character comparisons `<=` and `>=` are not accepted in front of `ANY` / `ALL` (they fail to parse).
+    Note: probably due to a [bql_iss_286](https://github.com/beancount/beanquery/issues/286) the two-character comparisons `<=` and `>=` are not accepted in front of `ANY` / `ALL` (they fail to parse).
 
 
     These subqueries are part of the `WHERE` expression, so they work in **both** SELECT query types — the [traditional form](#8-select-query) and the [#table form](#8-select-query) — and the examples below use the traditional form (no `FROM #postings`).
