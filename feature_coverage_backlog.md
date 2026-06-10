@@ -7,9 +7,11 @@ Work through one item at a time; check off when covered in the manual.
 
 ## Backlog
 
-- [ ] **1. `PIVOT BY` clause** — fully implemented in beanquery (grammar + `compiler.py:314`, `EvalPivot`),
+- [x] **1. `PIVOT BY` clause** — fully implemented in beanquery (grammar + `compiler.py:314`, `EvalPivot`),
   but section 18.1 of the manual explicitly claims "No PIVOT functionality". Outdated misinformation —
   needs correcting, not just expanding. Highest priority.
+  *Done 2026-06-10: new section 13.5 with four interactive examples; PIVOT BY added to both
+  SELECT syntax blocks in section 8; section 18.1 claim removed (18.2 renumbered to 18.1).*
 
 - [ ] **2. Named queries: ledger `query` directive + `.run` shell command** — queries stored in the
   Beancount file can be executed with `.run name` / `.run *` (tab completion; the query directive's
@@ -72,7 +74,7 @@ Work through one item at a time; check off when covered in the manual.
 
 ## Side findings (small fixes, not new sections)
 
-- [ ] Section 18.1 inaccuracy: PIVOT BY exists (see item 1).
+- [x] Section 18.1 inaccuracy: PIVOT BY exists (see item 1). *Fixed 2026-06-10 together with item 1.*
 - [ ] Appendix A `??` placeholders: `nullvalue` is the string printed in place of NULL values;
   `unicode` makes the text renderer use Unicode box-drawing characters.
 - [ ] Section 13.2 (ORDER BY): per the changelog, NULLs always sort smaller than any other value —

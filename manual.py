@@ -720,6 +720,7 @@ def _(mo):
     [WHERE <posting-filter-logical-expression>]
     [GROUP BY <groups> [HAVING <aggregate-filter-expression>]]
     [ORDER BY <groups> [ASC|DESC]]
+    [PIVOT BY <column1>, <column2>]
     [LIMIT num]
     ```
 
@@ -769,6 +770,7 @@ def _(mo):
     [WHERE <posting-filter-logical-expression>]
     [GROUP BY <groups> [HAVING <aggregate-filter-expression>]]
     [ORDER BY <groups> [ASC|DESC]]
+    [PIVOT BY <column1>, <column2>]
     [LIMIT num]
     ```
     In this form the `FROM` clause can include either a table name of a subquery. The subqueries are discussed in the section [section 14](#14-subqueries).
@@ -4126,6 +4128,192 @@ def _(having_count_query_ui, having_ledger_ui, query_output):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### 13.5 PIVOT BY
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    The result of an [aggregate query](#121-aggregate-functions-and-aggregate-queries) grouped by two columns is a one-dimensional list of rows, where each row corresponds to one combination of the two grouping values. The `PIVOT BY` clause rotates such a result into a **two-dimensional table**: the values of one column become the rows, the values of the other column become the columns, and the remaining target columns fill the cells.
+
+    The syntax is:
+
+    ```text
+    PIVOT BY <column1>, <column2>
+    ```
+
+    where the values of `<column1>` become the **rows** and the values of `<column2>` become the **columns** of the pivoted table. The columns can be referenced either by name or by their 1-based position in the targets list (e.g. `PIVOT BY 1, 2`).
+
+    The following rules apply:
+
+    * Both columns must be present in the `SELECT` targets list.
+    * The two columns must be different.
+    * The second column must be a `GROUP BY` column (this guarantees that its values are unique within each row).
+    * The header of the first output column is named `<column1>/<column2>` as a reminder of what the rows and the columns represent.
+    * Combinations for which there is no data are filled with `NULL` (rendered as empty cells).
+
+    Let us demonstrate this with the ledger below, which has postings to three expense accounts spread over two years (note that `Expenses:Books` has postings only in 2024):
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Assets:Bank
+    2023-01-01 open Expenses:Food
+    2023-01-01 open Expenses:Transport
+    2023-01-01 open Expenses:Books
+
+    2023-02-05 * "Groceries"
+      Expenses:Food   40 USD
+      Assets:Bank
+
+    2023-07-10 * "Restaurant"
+      Expenses:Food   60 USD
+      Assets:Bank
+
+    2023-03-15 * "Bus pass"
+      Expenses:Transport  30 USD
+      Assets:Bank
+
+    2024-01-20 * "Groceries"
+      Expenses:Food   50 USD
+      Assets:Bank
+
+    2024-04-02 * "Taxi"
+      Expenses:Transport  25 USD
+      Assets:Bank
+
+    2024-08-09 * "Train ticket"
+      Expenses:Transport  45 USD
+      Assets:Bank
+
+    2024-11-11 * "Novel"
+      Expenses:Books  25 USD
+      Assets:Bank
+    """
+
+    pivot_ledger_ui = ledger_editor(_ledger, label="Ledger for PIVOT BY demo")
+    pivot_ledger_ui
+    return (pivot_ledger_ui,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    First, the aggregate query **without** `PIVOT BY` — one row per (account, year) combination:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, year, sum(position) AS balance
+    WHERE account ~ '^Expenses'
+    GROUP BY account, year
+    ORDER BY account, year
+    """
+    pivot_flat_query_ui = query_editor(_sql, label="Aggregate query without PIVOT BY")
+    pivot_flat_query_ui
+    return (pivot_flat_query_ui,)
+
+
+@app.cell
+def _(pivot_flat_query_ui, pivot_ledger_ui, query_output):
+    query_output(pivot_ledger_ui.value, pivot_flat_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **Example 1** — adding `PIVOT BY account, year` turns the same result into a table with one row per account and one column per year. Note the `account/year` header of the first column and the empty (NULL) cell for `Expenses:Books` in 2023:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, year, sum(position) AS balance
+    WHERE account ~ '^Expenses'
+    GROUP BY account, year
+    PIVOT BY account, year
+    """
+    pivot_by_query_ui = query_editor(_sql, label="PIVOT BY account, year")
+    pivot_by_query_ui
+    return (pivot_by_query_ui,)
+
+
+@app.cell
+def _(pivot_by_query_ui, pivot_ledger_ui, query_output):
+    query_output(pivot_ledger_ui.value, pivot_by_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    The same query can be written with column positions instead of names: `PIVOT BY 1, 2`.
+
+    **Example 2** — swapping the two columns (`PIVOT BY year, account`) transposes the table: years become the rows and accounts become the columns:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, year, sum(position) AS balance
+    WHERE account ~ '^Expenses'
+    GROUP BY account, year
+    PIVOT BY year, account
+    """
+    pivot_swapped_query_ui = query_editor(_sql, label="PIVOT BY year, account")
+    pivot_swapped_query_ui
+    return (pivot_swapped_query_ui,)
+
+
+@app.cell
+def _(pivot_ledger_ui, pivot_swapped_query_ui, query_output):
+    query_output(pivot_ledger_ui.value, pivot_swapped_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **Example 3** — if the targets list contains **more than one** remaining column besides the two pivot columns, each pivoted column is expanded into a group of columns, one per remaining target. The headers are then named `<value>/<target-name>`:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, year, sum(position) AS balance, count(*) AS postings
+    WHERE account ~ '^Expenses'
+    GROUP BY account, year
+    PIVOT BY account, year
+    """
+    pivot_two_values_query_ui = query_editor(_sql, label="PIVOT BY with two value columns")
+    pivot_two_values_query_ui
+    return (pivot_two_values_query_ui,)
+
+
+@app.cell
+def _(pivot_ledger_ui, pivot_two_values_query_ui, query_output):
+    query_output(pivot_ledger_ui.value, pivot_two_values_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 14 Subqueries
     """)
     return
@@ -5172,11 +5360,7 @@ def _(mo):
 
     _#TODO: add information_
 
-    ### 18.1 No PIVOT functionality
-
-    * Use dataframes
-
-    ### 18.2 No table joining
+    ### 18.1 No table joining
 
     * Use built in functions
     * Use data frames
