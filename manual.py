@@ -1312,7 +1312,7 @@ def _(mo):
 
     * `=`, `!=`, `<`, `<=`, `>`, `>=`  (comparisons)
     * date BETWEEN start AND end (check date range, inclusive date range)
-    * date +/- [interval(str)](#1225-intervalstr)
+    * date +/- [interval(str)](#1226-intervalstr)
     * date +/- int  (the same as `date +/- interval('<int> days')`)
     """)
     return
@@ -1868,7 +1868,7 @@ def _(ledger_ui_with_meta, query_output, sql_ui_trans_meta):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Note, that both posting and transaction metadata can also be accessed using the [meta(), entry_meta(), and any_meta()](#1229-meta-entry_meta-and-any_meta) functions.
+    Note, that both posting and transaction metadata can also be accessed using the [meta(), entry_meta(), and any_meta()](#12210-meta-entry_meta-and-any_meta) functions.
     """)
     return
 
@@ -3141,7 +3141,135 @@ def _(
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 12.2.4 ROOT()
+    #### 12.2.4 VALUE()
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ```
+    VALUE(position | inventory [, date])
+    ```
+    `VALUE()` is a close sibling of [`CONVERT()`](#1223-convert). Whilst `CONVERT()` expresses a value in a target currency **you** specify, `VALUE()` expresses a value in the position's **cost currency**. If the cost is not available, the value is returned unchanged
+
+    * The first argument is the position or inventory to be valued.
+    * The second (optional) argument is the date at which the price is looked up, with the same semantics as in `CONVERT()`: the latest price on or before (but not after) that date is used, and if the date is omitted the latest available price is used.
+
+    Let us start with a simple portfolio held at cost:
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Assets:Bank
+    2023-01-01 open Assets:Investment
+    2023-01-01 open Income:Salary
+
+    2023-01-01 * "Salary"
+      Income:Salary   -5000 USD
+      Assets:Bank      5000 USD
+
+    2023-01-15 * "Buy 10 IVV at a cost of 100 USD each"
+      Assets:Investment   10 IVV {100 USD}
+      Assets:Bank        -1000 USD
+
+    ; latest market price, higher than the purchase cost
+    2023-01-31 price IVV 120 USD
+    """
+    value_ledger_ui = ledger_editor(_ledger, label="Ledger for VALUE() function demo")
+    value_ledger_ui
+    return (value_ledger_ui,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date, account, narration, position,
+           value(position) as market_value
+    WHERE account = 'Assets:Investment'
+    """
+    value_query_ui = query_editor(_sql, label="VALUE() function demo")
+    value_query_ui
+    return (value_query_ui,)
+
+
+@app.cell
+def _(query_output, value_ledger_ui, value_query_ui):
+    query_output(value_ledger_ui.value, value_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Let us compare in more details **`VALUE()` vs `CONVERT()`.** The two functions overlap but are not interchangeable:
+
+    | | `VALUE(pos [, date])` | `CONVERT(pos, currency [, date])` |
+    |---|---|---|
+    | Target currency | inferred (the position's cost currency) | you specify it explicitly |
+    | Position **not** at cost (e.g. cash) | returned **unchanged** | converted to the target currency |
+    | Typical use | mark a portfolio **to market** | express balances **in one reporting currency** |
+
+    The example below puts them side by side on a ledger that holds both a stock (at cost) and plain cash.
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Assets:Bank
+    2023-01-01 open Assets:Investment
+    2023-01-01 open Income:Salary
+
+    2023-01-01 * "Salary"
+      Income:Salary   -5000 USD
+      Assets:Bank      5000 USD
+
+    2023-01-15 * "Buy 10 IVV at a cost of 100 USD each"
+      Assets:Investment   10 IVV {100 USD}
+      Assets:Bank        -1000 USD
+
+    2023-01-16 * "Buy 10 IVV NOT at a cost of 100 USD each"
+      Assets:Investment   10 IVV @ 100 USD
+      Assets:Bank        -1000 USD
+
+    2023-01-31 price IVV 120 USD
+    2023-01-31 price USD 0.9 EUR
+    """
+    value_vs_convert_ledger_ui = ledger_editor(_ledger, label="Ledger comparing VALUE() and CONVERT()")
+    value_vs_convert_ledger_ui
+    return (value_vs_convert_ledger_ui,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date, account, narration, position,
+           value(position) as value_func,
+           convert(position, 'USD') as convert_usd,
+           convert(position, 'EUR') as convert_eur
+    WHERE account = 'Assets:Investment'
+    """
+    value_vs_convert_query_ui = query_editor(_sql, label="VALUE() vs CONVERT() side by side")
+    value_vs_convert_query_ui
+    return (value_vs_convert_query_ui,)
+
+
+@app.cell
+def _(query_output, value_vs_convert_ledger_ui, value_vs_convert_query_ui):
+    query_output(value_vs_convert_ledger_ui.value, value_vs_convert_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### 12.2.5 ROOT()
     """)
     return
 
@@ -3213,7 +3341,7 @@ def _(ledger_root_func_ui, query_output, root_func_query_ui):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 12.2.5 INTERVAL(str)
+    #### 12.2.6 INTERVAL(str)
 
     The BQL function `interval('...')` creates an object of type `relativedelta` that can be used to modify dates using the **[+/-](#914-date-operators)** operator. Example: `date - interval('2 month')`.
     (plural s can be appended)
@@ -3232,7 +3360,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 12.2.6 DATE_BIN() and DATE_TRUNC()
+    #### 12.2.7 DATE_BIN() and DATE_TRUNC()
     """)
     return
 
@@ -3240,7 +3368,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Both functions map a date down to the **start of a period** and return a **date**, which makes them ideal as `GROUP BY` keys for aggregating postings by week, month, quarter, year, or fiscal period. (Contrast this with [`date_part()`](#1227-date_part), which returns an **integer** component of a date rather than a date.)
+    Both functions map a date down to the **start of a period** and return a **date**, which makes them ideal as `GROUP BY` keys for aggregating postings by week, month, quarter, year, or fiscal period. (Contrast this with [`date_part()`](#1228-date_part), which returns an **integer** component of a date rather than a date.)
 
     They differ only in how the period boundaries are defined:
 
@@ -3307,7 +3435,7 @@ def _(mo):
     ```
     Is a function for rounding timestamps down into fixed-width intervals, called the `stride`, aligned to an `origin`. It is similar to SQL's `date_bin()` but extended to accept strides with units of months and years (which have variable length). The function is particularly useful with `GROUP BY` to aggregate postings by week, month, quarter, fiscal year, or any other custom-aligned period.
 
-    * `stride` — either an [`interval`](#1225-intervalstr) (e.g. `interval('1 month')`) or a string accepted by `interval()` (e.g. `'1 month'`, `'3 days'`, `'1 year'`).
+    * `stride` — either an [`interval`](#1226-intervalstr) (e.g. `interval('1 month')`) or a string accepted by `interval()` (e.g. `'1 month'`, `'3 days'`, `'1 year'`).
     * `source` — the date to be binned.
     * `origin` — any date that defines the alignment of the bins. The origin does **not** have to be earlier than `source`; bins extend in both directions.
 
@@ -3472,7 +3600,7 @@ def _(date_period_ledger_ui, date_trunc_group_query_ui, query_output):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 12.2.7 DATE_PART()
+    #### 12.2.8 DATE_PART()
     """)
     return
 
@@ -3506,7 +3634,7 @@ def _(mo):
 
     An unrecognised `field` returns `NULL`. Note that `date_part('weekday', ...)` and `date_part('isoweekday', ...)` use **different** numbering conventions — pick the one that matches the rest of your query.
 
-    [`date_trunc()` and `date_bin()`](#1226-date_bin-and-date_trunc) return a **date** (the start of a period), whereas `date_part()` returns the period number as an **integer**, which is convenient for `GROUP BY`, `WHERE`, and arithmetic.
+    [`date_trunc()` and `date_bin()`](#1227-date_bin-and-date_trunc) return a **date** (the start of a period), whereas `date_part()` returns the period number as an **integer**, which is convenient for `GROUP BY`, `WHERE`, and arithmetic.
     """)
     return
 
@@ -3607,7 +3735,7 @@ def _(date_part_ledger_ui, date_part_weekend_query_ui, query_output):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 12.2.8 COALESCE()
+    #### 12.2.9 COALESCE()
     """)
     return
 
@@ -3723,7 +3851,7 @@ def _(coalesce_ledger_ui, coalesce_multi_query_ui, query_output):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 12.2.9 META(), ENTRY_META() and ANY_META()
+    #### 12.2.10 META(), ENTRY_META() and ANY_META()
     """)
     return
 
@@ -3747,7 +3875,7 @@ def _(mo):
 
     In Beancount, metadata can be attached either to the transaction (indented under the date line) or to an individual posting (indented under the posting). `meta()` sees only the latter, `entry_meta()` only the former, and `any_meta()` combines them — preferring the posting's value when the key exists at both levels.
 
-    All three return the generic type `object`, so the same type caveat as [`coalesce()`](#1228-coalesce) applies: wrap them in `str()` (or another cast) before combining them with values of a concrete type.
+    All three return the generic type `object`, so the same type caveat as [`coalesce()`](#1229-coalesce) applies: wrap them in `str()` (or another cast) before combining them with values of a concrete type.
 
     The ledger below carries a `project` key in three different positions so the difference is easy to see: on the posting only, on the transaction only, and on both at once.
     """)
@@ -5371,7 +5499,7 @@ def _(
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ?? It seems that the `SELECT ... WHERE`  offers the same functionality, but with a better flexibility. E.g. it is also possible to filter specific accounts, and / or apply the [`root()`](#1224-root) function to accounts.
+    ?? It seems that the `SELECT ... WHERE`  offers the same functionality, but with a better flexibility. E.g. it is also possible to filter specific accounts, and / or apply the [`root()`](#1225-root) function to accounts.
 
     E.g.: would it be possible to do the following with the BALANCES query, where we select balances only for assets?
     """)

@@ -20,6 +20,9 @@ Work through one item at a time; check off when covered in the manual.
 - [ ] **3. `VALUE()` and `GETPRICE()` functions** — market-value conversion using the price map.
   Siblings of `CONVERT()` (which has section 12.2.3). `VALUE()` is essential for the Net-Worth
   use case shown in 19.2.
+  *VALUE() done 2026-06-20: new section 12.2.4 (after CONVERT), with a basic mark-to-market
+  example and a side-by-side VALUE()/CONVERT() comparison; following 12.2.x sections renumbered.
+  GETPRICE() still outstanding.*
 
 - [ ] **4. Type-casting functions `int()`, `decimal()`, `str()`, `bool()`, `date()`** (incl. `date(y, m, d)`) —
   added specifically to handle the generic `object` type returned by metadata functions (covered in 12.2.9).
