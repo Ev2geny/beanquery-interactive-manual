@@ -1345,7 +1345,7 @@ def _(mo):
     * `value <op> ANY ( <collection> )` — true when the comparison `<op>` holds for **at least one** element of the collection.
     * `value <op> ALL ( <collection> )` — true when the comparison `<op>` holds for **every** element of the collection (and, vacuously, true when the collection is empty).
 
-    `<op>` is an ordinary comparison operator — `=`, `!=`, `<`, `>` — or one of the [regular-expression match operators](#912-string-operators) (`~`, `?~`, `!~`). *(Until [bql_iss_286](https://github.com/beancount/beanquery/issues/286) bug is resolved, `<=` and `>=` currently cannot be used with `ANY` / `ALL` — use `<` / `>` instead.)*
+    `<op>` is an ordinary comparison operator — `=`, `!=`, `<`, `>` — or one of the [regular-expression match operators](#912-string-operators) (`~`, `?~`, `!~`).
 
     To picture the meaning, suppose the collection were the numbers `{1, 4, 9}`:
 
@@ -1437,15 +1437,6 @@ def _(query_editor):
 @app.cell
 def _(arr_any_query_ui, arr_ledger_ui, query_output):
     query_output(arr_ledger_ui.value, arr_any_query_ui.value)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    Using `ALL` instead requires **every** element to match. The query below finds **cash payments used to buy food only**<br>
-    Note: `other_accounts` other account would be a better choice to use here, but at the moment this does not work probably due to a [bql_iss_288](https://github.com/beancount/beanquery/issues/288)
-    """)
     return
 
 
@@ -4650,10 +4641,6 @@ def _(mo):
 
     * `x > ALL (SELECT ...)` means *x is greater than the largest* returned value.
     * `x > ANY (SELECT ...)` means *x is greater than the smallest* returned value — note that, despite how it reads in English, `> ANY` does **not** mean "greater than all of them".
-
-
-    Note: probably due to a [bql_iss_286](https://github.com/beancount/beanquery/issues/286) the two-character comparisons `<=` and `>=` are not accepted in front of `ANY` / `ALL` (they fail to parse).
-
 
     These subqueries are part of the `WHERE` expression, so they work in **both** SELECT query types — the [traditional form](#8-select-query) and the [#table form](#8-select-query) — and the examples below use the traditional form (no `FROM #postings`).
 
