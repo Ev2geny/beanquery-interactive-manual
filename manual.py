@@ -2,7 +2,7 @@
 # requires-python = ">=3.13"
 # dependencies = [
 #     "beancount",
-#     "beanquery>=0.2.0",
+#     "beanquery @ git+https://github.com/beancount/beanquery.git@62b6abba7f560e2d5e1dce231b55571b84fdf31f",
 #     "marimo>=0.22.4",
 #     "pyzmq>=27.1.0",
 # ]
@@ -10,7 +10,7 @@
 
 import marimo
 
-__generated_with = "0.23.6"
+__generated_with = "0.23.9"
 app = marimo.App(width="medium", css_file="custom.css")
 
 
@@ -357,6 +357,8 @@ def _(mo):
     * to include many real examples using actual ledgers
     * to be self-documenting: all query outputs are computed by running beanquery as part of the notebook execution
     * to be interactive: when run as a [marimo](https://marimo.io/) notebook, readers can experiment by changing the default ledgers and/or queries, with outputs updating automatically
+
+    Note, that during production of the manual the **beanquery** version was used, which was ahead of the latest released version, hence the manual include demonstation of some features, which will may not work on the latest released version. Specifically the following beanquery commit was used: [`62b6abb`](https://github.com/beancount/beanquery/commit/62b6abba7f560e2d5e1dce231b55571b84fdf31f) (version 0.3.0.dev0).
 
     **Current state**: work is ongoing, PRs are welcome!
     """)
@@ -1378,14 +1380,11 @@ def _(mo):
     mo.md(r"""
     **What can go inside the brackets.** The collection must be a **list- or set-valued expression**. There are two common sources:
 
-    1. A **set-valued column** — but only if it carries an element **type**. Beancount exposes several set columns, yet only `accounts` qualifies for `ANY` / `ALL`:
-        * `accounts` — the set of all accounts of a transaction, typed `set[str]` — **works with `ANY` / `ALL`**
-
-        Note, that   `other_accounts`  `tags`, `links` at the moment work only with `IN`, *not* with `ANY` / `ALL` (this is probably can be considered to be a [bql_iss_288](https://github.com/beancount/beanquery/issues/288))
+    1. A **set-valued column**. E.g.  `accounts`, `other_accounts` (the latter after the fix of [bql_iss_288](https://github.com/beancount/beanquery/issues/288))
 
     1. A **subquery** returning a single column (covered separately in [section 14](#14-subqueries)).
 
-    The examples below use the `accounts` column. The first matches a regular expression against the accounts of each transaction — `':Food' ?~ ANY(accounts)` is true for a transaction when **at least one** of its accounts matches the pattern:
+    The examples below use the `other_accounts` column.
     """)
     return
 
@@ -1395,25 +1394,27 @@ def _(ledger_editor):
     _ledger = """\
     2024-01-01 open Assets:Bank
     2024-01-01 open Assets:Cash
-    2024-01-01 open Expenses:Food
+    2024-01-01 open Expenses:Food:Meat 
+    2024-01-01 open Expenses:Food:Groceries
+    2024-01-01 open Expenses:Food:Bakery
     2024-01-01 open Expenses:Transport
     2024-01-01 open Expenses:Misc
 
-    2024-01-02 * "Groceries"
-      Expenses:Food   40 USD
+    2024-01-02 * "Buying meat with bank card"
+      Expenses:Food:Meat   40 USD
       Assets:Bank
 
-    2024-01-05 * "Bus ticket"
+    2024-01-05 * "Bus ticket with cash"
       Expenses:Transport  15 USD
       Assets:Cash
 
-    2024-01-06 * "Supermarket"
-      Expenses:Food   40 USD
+    2024-01-06 * "Supermarket with cash"
+      Expenses:Food:Groceries   40 USD
       Expenses:Misc   20 USD
       Assets:Cash
 
-    2024-01-09 * "Restaurant"
-      Expenses:Food   60 USD
+    2024-01-09 * "Bakery with cash"
+      Expenses:Food:Bakery  60 USD
       Assets:Cash
     """
     arr_ledger_ui = ledger_editor(_ledger, label="Ledger for ANY/ALL over columns")
@@ -1424,12 +1425,11 @@ def _(ledger_editor):
 @app.cell
 def _(query_editor):
     _sql = """\
-    SELECT date, narration
-    FROM #transactions
-    WHERE 'Expenses:Food' ?~ ANY(accounts)
+    SELECT date, narration, position
+    WHERE account = 'Assets:Cash' AND 'Expenses:Food' ?~ ANY(other_accounts)
     ORDER BY date
     """
-    arr_any_query_ui = query_editor(_sql, label="All transactions with Expenses:Food account involved (ANY)")
+    arr_any_query_ui = query_editor(_sql, label="All cash payments, which were used to pay for food (but not necessarily only for food) (ANY)")
     arr_any_query_ui
     return (arr_any_query_ui,)
 
@@ -1452,12 +1452,11 @@ def _(mo):
 @app.cell
 def _(query_editor):
     _sql = """\
-    SELECT date, narration
-    FROM #transactions
-    WHERE  '(?i)assets:cash|expenses:food' ?~ ALL(accounts)
+    SELECT date, narration, position
+    WHERE account = 'Assets:Cash' AND 'Expenses:Food' ?~ ALL(other_accounts)
     ORDER BY date
     """
-    arr_all_query_ui = query_editor(_sql, label="Transactions were cash was used to purchase food only and nothing else (ALL)")
+    arr_all_query_ui = query_editor(_sql, label="All cash payments, which were used to pay for food and food only (ALL)")
     arr_all_query_ui
     return (arr_all_query_ui,)
 
@@ -2820,18 +2819,9 @@ def _(mo):
     Beancount offers first-class support for multi-currency accounting. The `CONVERT()` function is a key element of it.
 
     ```
-    convert(amount, str)
-    convert(amount, str, date)
-      Coerce an amount to a particular currency.
-
-    convert(position, str)
-    convert(position, str, date)
-      Coerce a position to a particular currency.
-
-    convert(inventory, str)
-    convert(inventory, str, date)
-      Coerce an inventory to a particular currency.
+    CONVERT(amount | position | inventory, currency [, date])
     ```
+    Converts a value to a target currency that you specify. Works on an Amount, a Position, or a whole Inventory. It looks up a direct rate first; if none exists, it tries to synthesize one via the position's cost currency. If no conversion is possible, it silently returns the value unchanged rather than erroring.
 
     * The first argument is the amount, position, or inventory to be converted.
     * The second argument is the target commodity to convert to.
@@ -2851,7 +2841,7 @@ def _(mo):
     In practice, there are several ways to use the `date` parameter:
     * Specify a fixed date (e.g. `2023-01-02`). This is typically used in queries that convert **Assets** and **Liabilities** to a target currency, since under accepted accounting practices these are translated using the exchange rate in effect on the date of the **Net Worth report**.
     * Pass the `date` column as the date parameter. In this case `CONVERT()` uses the posting date to look up the exchange rate, so each posting may use a different rate. This is typically used to convert **Income** and **Expenses**, since under accepted accounting practices these are translated using the exchange rate in effect on the transaction date.
-    * Omit the date parameter entirely. In this case `CONVERT()` uses the latest available exchange rate (this may have limited accounting meaning).
+    * Omit the date parameter entirely. In this case `CONVERT()` uses the latest available exchange rate (?? does this have any practical meaning from accounting prospective?).
 
     Let us demonstrate this with a simple example:
     """)
@@ -2983,6 +2973,144 @@ def _(query_editor):
 @app.cell
 def _(convert_ledger_with_cost_ui, convert_with_cost_query_ui, query_output):
     query_output(convert_ledger_with_cost_ui.value, convert_with_cost_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Observe, that `CONVERT()` has used an exchange rate from the `price` directive to convert IVV and IPP to USD.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Another important behavior of the `CONVERT()` is that if an exchange rate is not available for **units** currency it tries to fallback to convert a position to the target currency using the position's **cost**.
+
+    Let us demonstarte this on the below 2 legers. In the example on the right, the direct exchange rate IVV -> EUR was not provided via the `price` notation, so the `CONVERT()` uses position's **cost** value (which is expressed in USD) to convert it to the target currency (EUR). Since IVV to USD is available, but with the following caveats:
+
+     - it is able to do this only for the position, where there cost is available
+     - if prices between different currencies are not consistent, the result may be not what one expected. The below ledger domonstrates, what it means to have inconsistent prices
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Assets:Bank
+    2023-01-01 open Assets:Investment
+    2023-01-01 open Income:Salary
+
+
+    2023-01-01 * "Salary"
+      Income:Salary   -5000 USD
+      Assets:Bank      5000 USD
+
+    2023-01-01 price USD 10 EUR
+    2023-01-01 price IVV 10 USD
+
+    ; This price makes no real life sense, since 
+    ; it contradicts the previous price of IVV in USD
+    ; and the USD to EUR price
+    ; but it is here to demonstrate the behavior of CONVERT() 
+
+    2023-01-01 price IVV 20 EUR
+
+    2023-01-01 * "Invest 1"
+      Assets:Investment    1 IVV {10 USD} 
+      Assets:Bank         -10 USD
+
+    2023-01-02 * "Invest 2, not at cost"
+      Assets:Investment    1 IVV @@ 10 USD
+      Assets:Bank         -10 USD
+      """
+    convert_ledger_with_cost_and_no_cost_ui = ledger_editor(_ledger, label="Ledger for CONVERT() demo with cost and no cost")
+    # convert_ledger_with_cost_and_no_cost_ui
+    return (convert_ledger_with_cost_and_no_cost_ui,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date, narration, position, 
+    convert(position, "USD") as pos_in_usd, 
+    convert(position, "EUR") as pos_in_eur
+    WHERE account = "Assets:Investment"
+    """
+
+    convert_with_cost_to_eur_query_ui = query_editor(_sql, label="CONVERT() with cost example")
+    # convert_with_cost_to_eur_query_ui
+    return (convert_with_cost_to_eur_query_ui,)
+
+
+@app.cell
+def _():
+    # query_output(convert_ledger_with_cost_and_no_cost_ui.value, convert_with_cost_to_eur_query_ui.value)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Assets:Bank
+    2023-01-01 open Assets:Investment
+    2023-01-01 open Income:Salary
+
+
+    2023-01-01 * "Salary"
+      Income:Salary   -5000 USD
+      Assets:Bank      5000 USD
+
+    2023-01-01 price USD 10 EUR
+    2023-01-01 price IVV 10 USD
+
+    ; This price makes no real life sense, since 
+    ; it contradicts the previous price of IVV in USD
+    ; and the USD to EUR price
+    ; but it is here to demonstrate the behavior of CONVERT() 
+
+    ; 2023-01-01 price IVV 20 EUR ; <= commented out
+
+    2023-01-01 * "Invest 1"
+      Assets:Investment    1 IVV {10 USD} 
+      Assets:Bank         -10 USD
+
+    2023-01-02 * "Invest 2, not at cost"
+      Assets:Investment    1 IVV @@ 10 USD
+      Assets:Bank         -10 USD
+      """
+    convert_ledger_with_cost_and_no_cost__v2_ui = ledger_editor(_ledger, label="Ledger CONVERT() will fall back to convert position cost, if available")
+    # convert_ledger_with_cost_and_no_cost__v2_ui
+    return (convert_ledger_with_cost_and_no_cost__v2_ui,)
+
+
+@app.cell
+def _():
+    # query_output(convert_ledger_with_cost_and_no_cost__v2_ui.value, convert_with_cost_to_eur_query_ui.value)
+    return
+
+
+@app.cell
+def _(
+    convert_ledger_with_cost_and_no_cost__v2_ui,
+    convert_ledger_with_cost_and_no_cost_ui,
+    convert_with_cost_to_eur_query_ui,
+    mo,
+    query_output,
+):
+    mo.hstack([
+        mo.vstack([
+            convert_ledger_with_cost_and_no_cost_ui,
+            query_output(convert_ledger_with_cost_and_no_cost_ui.value, convert_with_cost_to_eur_query_ui.value)   
+        ]),
+        mo.vstack([
+            convert_ledger_with_cost_and_no_cost__v2_ui,
+            query_output(convert_ledger_with_cost_and_no_cost__v2_ui.value, convert_with_cost_to_eur_query_ui.value)   
+        ])
+    ])
     return
 
 

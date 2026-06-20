@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "beancount",
-    "beanquery>=0.2.0",
+    "beanquery @ git+https://github.com/beancount/beanquery.git@62b6abba7f560e2d5e1dce231b55571b84fdf31f",
     "marimo>=0.23.3",
     "pyzmq>=27.1.0",
 ]

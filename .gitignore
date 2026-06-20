@@ -208,7 +208,12 @@ __marimo__/
 out/
 
 references/
-.claude/
+
+# Ignore .claude by default, but share project skills and committed settings
+.claude/*
+!.claude/skills/
+!.claude/settings.json
+.claude/settings.local.json
 
 .idea/
 .vscode/
