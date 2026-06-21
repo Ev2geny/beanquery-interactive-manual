@@ -8,8 +8,8 @@
     - [1.2 As an interactive manual locally on your PC](#12-as-an-interactive-manual-locally-on-your-pc)
   - [2 How to read the manual](#2-how-to-read-the-manual)
   - [Release notes](#release-notes)
-    - [v0.3.0 2026-06-21](#v030-2026-06-21)
-    - [v0.1.0 2026-04-15](#v010-2026-04-15)
+    - [0.3.0 (2026-06-21)](#030-2026-06-21)
+    - [0.1.0 (2026-04-15)](#010-2026-04-15)
 
 This is an interactive manual and tutorial for [beanquery](https://github.com/beancount/beanquery) — a customizable, extensible, lightweight SQL-like query tool for [Beancount](https://github.com/beancount/beancount/) ledger data.
 
@@ -61,7 +61,7 @@ Use the popping Table of Content on the right side to navigate the document
 
 ## Release notes
 
-### v0.3.0 2026-06-21
+### 0.3.0 (2026-06-21)
 
 Changes since v0.1.0:
 
@@ -83,7 +83,7 @@ Changes since v0.1.0:
 * **beanquery version** — pinned to GitHub commit `62b6abb`; references to bugs fixed upstream were removed.
 * Various English and formatting improvements, plus an automatic Table of Contents.
 
-### v0.1.0 2026-04-15
+### 0.1.0 (2026-04-15)
 
 Initial version, roughly covering [Beancount Query Language](https://docs.google.com/document/d/1s0GOZMcrKKCLlP29MD7kHO4L88evrwWdIO0p4EwRBE0/edit?usp=sharing) document.
 
