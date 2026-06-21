@@ -512,9 +512,14 @@ def _(mo):
     ```
 
     All the interactive commands are supported.
+    <br>
 
+    **Running queries, stored in the `QUERY` directive**<br>
+    It is also possible to run queries, stored in beancount ledger `QUERY` directive.  See [Appendix C](#203-appendix-c-named-queries-the-query-directive-and-run) for more details.
 
+    <br>
     **Shell variables**
+    <br>
     The interactive shell has a few “set” variables that you can customize to change some of the behavior of the shell. These are like environment variables. Refer to the [Appendix A](#201-appendix-a-shell-variables) for more information.
 
     Note, that in this document for demonstration purposes the following changes are made to the default environment variables:
@@ -6141,6 +6146,188 @@ def _(ledger_editor):
 @app.cell
 def _(ledger_precision3_ui, query_output, sql_precision_agg_ui):
     query_output(ledger_precision3_ui.value, sql_precision_agg_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### 20.3 Appendix C: Named queries (the `query` directive and `.run`)
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Queries that you run regularly do not have to be retyped every time. You can store them **inside your Beancount ledger file** with the `query` directive and then execute them by name from the beanquery shell with the `.run` command. Because the queries live in the ledger, they sit next to the data they describe and are version-controlled together with the rest of the file.
+
+    A `query` directive has three parts:
+
+    ```text
+    YYYY-MM-DD query "name" "
+      <query string>
+    "
+    ```
+
+    * a **date** (its role is explained in section 20.3.2 below),
+    * a **name** — a quoted string by which the query is invoked, and
+    * the **query string** itself — a quoted string, which may span several lines.
+
+    For example:
+
+    ```text
+    2024-01-01 query "expenses-2023" "
+      SELECT account, sum(position) AS total
+      FROM year >= 2000
+      WHERE account ~ 'Expenses'
+      GROUP BY account
+      ORDER BY account
+    "
+    ```
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### 20.3.1 Running named queries with `.run`
+
+    Inside the shell, the `.run` command executes the queries stored in the file:
+
+    | Command | Effect |
+    |---|---|
+    | `.run <name>` | Run the named query. |
+    | `.run` | List the names of all available named queries. |
+    | `.run *` | Run **all** named queries in turn (each preceded by its name). |
+
+    The query name supports **tab completion**, so typing `.run exp` and pressing `Tab` completes it to `expenses-2023`.
+
+    A short shell session with the directive shown above looks like this:
+
+    ```shell
+    beanquery> .run
+    expenses-2023
+
+    beanquery> .run expenses-2023
+         account        total
+    ------------------  ------
+    Expenses:Food       40 USD
+    Expenses:Transport  30 USD
+
+    beanquery>
+    ```
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### 20.3.2 The directive date is the default CLOSE date
+
+    The date of a `query` directive is not just documentation. When the stored query has a `FROM` clause **but does not specify its own `CLOSE`** (see [section 15.2](#152-closing-a-period-close-on-clause)), running it with `.run` uses the directive's date as the default **CLOSE date**. This makes the directive date a natural "as of" date for the report — a query dated `2024-01-01` reports the state of the books at the end of 2023.
+
+    Two details are worth keeping in mind:
+
+    * As everywhere in Beancount, the closing date is **exclusive**, so the date `2024-01-01` includes everything up to and including 2023-12-31.
+    * The default close date is applied **only when the query contains a `FROM` clause**. A query written without `FROM` (for example `SELECT … WHERE … GROUP BY …`) ignores the directive date and considers the whole ledger.
+
+    The notebook below cannot reach into the interactive shell, so it cannot run `.run` directly. Instead it demonstrates the behaviour by spelling out the query that `.run expenses-2023` executes — the same `SELECT`, with `CLOSE ON 2024-01-01` (the directive's date) added explicitly.
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Assets:Bank
+    2023-01-01 open Expenses:Food
+    2023-01-01 open Expenses:Transport
+
+    2023-06-15 * "Groceries"
+      Expenses:Food       40 USD
+      Assets:Bank
+
+    2023-09-20 * "Bus pass"
+      Expenses:Transport  30 USD
+      Assets:Bank
+
+    2024-03-10 * "Groceries"
+      Expenses:Food       55 USD
+      Assets:Bank
+
+    2024-01-01 query "expenses-2023" "
+      SELECT account, sum(position) AS total
+      FROM year >= 2000
+      WHERE account ~ 'Expenses'
+      GROUP BY account
+      ORDER BY account
+    "
+    """
+
+    namedq_ledger_ui = ledger_editor(_ledger, label="Ledger with a stored query directive")
+    namedq_ledger_ui
+    return (namedq_ledger_ui,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    The query below is exactly what `.run expenses-2023` executes: the stored `SELECT` with the directive's date supplied as `CLOSE ON 2024-01-01`. The 2024 grocery posting is excluded, so `Expenses:Food` shows only the 40 USD spent in 2023:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, sum(position) AS total
+    FROM year >= 2000 CLOSE ON 2024-01-01
+    WHERE account ~ 'Expenses'
+    GROUP BY account
+    ORDER BY account
+    """
+    namedq_run_query_ui = query_editor(_sql, label="What '.run expenses-2023' executes (CLOSE from the directive date)")
+    return (namedq_run_query_ui,)
+
+
+@app.cell
+def _(mo, namedq_ledger_ui, namedq_run_query_ui, query_output):
+    mo.vstack([
+        namedq_run_query_ui,
+        query_output(namedq_ledger_ui.value, namedq_run_query_ui.value)
+    ])
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    For contrast, the same `SELECT` run **without** the implied `CLOSE` — for example by typing it directly at the prompt instead of through `.run` — considers the whole ledger, so `Expenses:Food` adds up the 2024 grocery posting as well and reaches 95 USD:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, sum(position) AS total
+    WHERE year >= 2000 AND account ~ 'Expenses'
+    GROUP BY account
+    ORDER BY account
+    """
+    namedq_bare_query_ui = query_editor(_sql, label="The same query without the directive's CLOSE date")
+    return (namedq_bare_query_ui,)
+
+
+@app.cell
+def _(mo, namedq_bare_query_ui, namedq_ledger_ui, query_output):
+    mo.vstack([
+        namedq_bare_query_ui,
+        query_output(namedq_ledger_ui.value, namedq_bare_query_ui.value)
+    ])
     return
 
 

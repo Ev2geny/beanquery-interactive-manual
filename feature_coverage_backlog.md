@@ -13,11 +13,16 @@ Work through one item at a time; check off when covered in the manual.
   *Done 2026-06-10: new section 13.5 with four interactive examples; PIVOT BY added to both
   SELECT syntax blocks in section 8; section 18.1 claim removed (18.2 renumbered to 18.1).*
 
-- [ ] **2. Named queries: ledger `query` directive + `.run` shell command** — queries stored in the
+- [x] **2. Named queries: ledger `query` directive + `.run` shell command** — queries stored in the
   Beancount file can be executed with `.run name` / `.run *` (tab completion; the query directive's
   date becomes the default CLOSE date). Very practical daily-workflow feature, never mentioned.
+  *Done 2026-06-21: covered as section 20.3 Appendix C (under the Appendixes section) — the `query`
+  directive syntax, the `.run`/`.run`/`.run *` command variants with tab completion, and the
+  default-CLOSE-date behaviour (verified it only applies when the stored query has a FROM clause).
+  Two interactive examples contrast the `.run` equivalent (explicit CLOSE ON the directive date)
+  against the bare SELECT.*
 
-- [ ] **3. `VALUE()` and `GETPRICE()` functions** — market-value conversion using the price map.
+- [X] **3. `VALUE()` and `GETPRICE()` functions** — market-value conversion using the price map.
   Siblings of `CONVERT()` (which has section 12.2.3). `VALUE()` is essential for the Net-Worth
   use case shown in 19.2.
   *VALUE() done 2026-06-20: new section 12.2.4 (after CONVERT), with a basic mark-to-market
