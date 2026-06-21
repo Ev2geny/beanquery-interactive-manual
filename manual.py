@@ -2,7 +2,7 @@
 # requires-python = ">=3.13"
 # dependencies = [
 #     "beancount",
-#     "beanquery>=0.2.0",
+#     "beanquery @ git+https://github.com/beancount/beanquery.git@62b6abba7f560e2d5e1dce231b55571b84fdf31f",
 #     "marimo>=0.22.4",
 #     "pyzmq>=27.1.0",
 # ]
@@ -10,7 +10,7 @@
 
 import marimo
 
-__generated_with = "0.23.6"
+__generated_with = "0.23.9"
 app = marimo.App(width="medium", css_file="custom.css")
 
 
@@ -45,7 +45,7 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
 
-    VERSION ="0.2.0"
+    VERSION ="0.3.0"
 
     mo.md(f"*Version: {VERSION}*")
     return
@@ -358,6 +358,8 @@ def _(mo):
     * to be self-documenting: all query outputs are computed by running beanquery as part of the notebook execution
     * to be interactive: when run as a [marimo](https://marimo.io/) notebook, readers can experiment by changing the default ledgers and/or queries, with outputs updating automatically
 
+    Note, that during production of the manual the **beanquery** version was used, which was ahead of the latest released version, hence the manual include demonstation of some features, which will may not work on the latest released version. Specifically the following beanquery commit was used: [`62b6abb`](https://github.com/beancount/beanquery/commit/62b6abba7f560e2d5e1dce231b55571b84fdf31f) (version 0.3.0.dev0).
+
     **Current state**: work is ongoing, PRs are welcome!
     """)
     return
@@ -394,13 +396,16 @@ def _(files_downloaded, mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Note that throughout the document, unresolved questions the author had about beanquery functionality are marked with double question marks.
+    Throughout the document, the following conventions were used to indicate special elements:
 
-    E.g.: ?? Why do we need this.
+    * Unresolved questions the author had about beanquery functionality are marked with double question marks.<br>
+       E.g.: ?? Why do we need this.
 
-    There are also some TODOs, marked with #TODO. E.g.:
-
+    * Some TODOs, marked with #TODO. E.g.:<br>
     _#TODO: we need to investigate this_
+
+    * beanquery issues are marked as **bql_iss_\<number>**
+    * beanquery Pull Requests are marked as **bql_pr_\<number>**
     """)
     return
 
@@ -507,10 +512,15 @@ def _(mo):
     ```
 
     All the interactive commands are supported.
+    <br>
 
+    **Running queries, stored in the `QUERY` directive**<br>
+    It is also possible to run queries, stored in beancount ledger `QUERY` directive.  See [Appendix C](#203-appendix-c-named-queries-the-query-directive-and-run) for more details.
 
+    <br>
     **Shell variables**
-    The interactive shell has a few “set” variables that you can customize to change some of the behavior of the shell. These are like environment variables. Refer to the [Appendix A](#191-appendix-a-shell-variables) for more information.
+    <br>
+    The interactive shell has a few “set” variables that you can customize to change some of the behavior of the shell. These are like environment variables. Refer to the [Appendix A](#201-appendix-a-shell-variables) for more information.
 
     Note, that in this document for demonstration purposes the following changes are made to the default environment variables:
 
@@ -687,9 +697,9 @@ def _(mo):
     Beanquery supports the following types of queries, further discussed in this document:
 
     * [SELECT](#8-select-query)
-    * [BALANCES](#152-selecting-balances-balances-query)
-    * [JOURNAL](#151-selecting-journals-journal-query)
-    * [PRINT](#153-print-print-query)
+    * [BALANCES](#162-selecting-balances-balances-query)
+    * [JOURNAL](#161-selecting-journals-journal-query)
+    * [PRINT](#163-print-print-query)
     """)
     return
 
@@ -717,6 +727,7 @@ def _(mo):
     [WHERE <posting-filter-logical-expression>]
     [GROUP BY <groups> [HAVING <aggregate-filter-expression>]]
     [ORDER BY <groups> [ASC|DESC]]
+    [PIVOT BY <column1>, <column2>]
     [LIMIT num]
     ```
 
@@ -762,21 +773,33 @@ def _(mo):
 
     ```text
     SELECT [DISTINCT] [<targets>|*]
-    [FROM #<table-name>]
+    [FROM (#<table-name> | "<table-name>" | <table-name>) | ( <select-query> )]
     [WHERE <posting-filter-logical-expression>]
     [GROUP BY <groups> [HAVING <aggregate-filter-expression>]]
     [ORDER BY <groups> [ASC|DESC]]
+    [PIVOT BY <column1>, <column2>]
     [LIMIT num]
     ```
-    Let us call it the **#table** query form.
+    In this form the `FROM` clause can include either a table name of a subquery. The subqueries are discussed in the section [section 14](#14-subqueries).
+
+    The table name can be presented in 3 different forms:
+
+    - with the `#` symbol in front (E.g. `#transactions`)
+    - inside the double quotes (E.g. `"transactions"`)
+    - just by a table name (E.g. `transactions`)
+
+    Let us call this form the **#table** query form, even though not only #tables are supported (historically #table form was the 1st ones to be introduced, hence the name).
+
 
     Note that:
-    * The **#table** form is activated by adding the # symbol in front of the table name
-    * The **#table** form allows querying tables other than the postings table, but when used to query the postings table (which is possible), it lacks some functionality available in the traditional form, namely the `[OPEN ON <date>] [CLOSE [ON <date>]] [CLEAR]` part. (This may actually be a [bug](https://github.com/beancount/beanquery/issues/274), rather than a feature.)
+    * The **#table** form is activated either by naming a table in the FROM clause — as `#<table-name>`, `"<table-name>"`, or `<table-name>` — or by putting a subquery `( <select-query> )` there (see [section 14](#14-subqueries))
+    * The **#table** form allows querying tables other than the postings table as well as querying of sub-queries (which act as a table), but when used to query the postings table (which is possible), it lacks some functionality available in the traditional form, namely the `[OPEN ON <date>] [CLOSE [ON <date>]] [CLEAR]` part. (This may actually be a [bql_iss_274](https://github.com/beancount/beanquery/issues/274), rather than a feature.)
 
     So, to summarize:
     * In the traditional BQL, the FROM clause is used to describe the posting-level filter, not to identify the data source
-    * In the **#table** syntax, the table name must be preceded by the # symbol
+    * In the **#table** form, the FROM clause identifies the data source — either a table (named with `#`, double quotes, or bare) or a subquery
+
+    In addition to a table reference, the FROM clause can also contain a **subquery** — a parenthesised `SELECT` whose result is used as the data source (a *derived table*). Subqueries may also appear inside `WHERE` expressions, together with the `IN`, `ANY` and `ALL` operators. Subqueries are covered separately in [section 14](#14-subqueries).
 
     Currently beanquery supports both query types. Let us explore this with a simple ledger.
     """)
@@ -807,7 +830,7 @@ def _(ledger_editor):
 @app.cell
 def _(mo):
     mo.md(r"""
-    Let us create a query which shows postings to the account `Expenses:Food`
+    Let us create a query which shows postings to the account `Expenses:Food` in 4 different ways.
     """)
     return
 
@@ -816,7 +839,7 @@ def _(mo):
 def _(query_editor):
     _sql = """\
     SELECT *
-    WHERE account = "Expenses:Food"
+    WHERE account = 'Expenses:Food'
 
     """
     sql_ui_traditional = query_editor(_sql, label="Traditional query")
@@ -829,11 +852,35 @@ def _(query_editor):
     _sql = """\
     SELECT *
     FROM #postings
-    WHERE account = "Expenses:Food"
+    WHERE account = 'Expenses:Food'
     """
-    sql_ui_hash_table = query_editor(_sql, label=r"The same query, but using the \#table syntax")
+    sql_ui_hash_table = query_editor(_sql, label=r"The same, but using the \#table syntax")
     # sql_ui_hash_table
     return (sql_ui_hash_table,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT *
+    FROM "postings"
+    WHERE account = 'Expenses:Food'
+    """
+    sql_ui_quoted_table = query_editor(_sql, label=r"The same, but using the quoted table syntax")
+    # sql_ui_hash_table
+    return (sql_ui_quoted_table,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT *
+    FROM postings
+    WHERE account = 'Expenses:Food'
+    """
+    sql_ui_bare_table = query_editor(_sql, label=r"The same, but using the bare table syntax")
+    # sql_ui_hash_table
+    return (sql_ui_bare_table,)
 
 
 @app.cell
@@ -859,8 +906,32 @@ def _(
 
 
 @app.cell
+def _(
+    mo,
+    query_output,
+    simple_ledger_ui,
+    sql_ui_bare_table,
+    sql_ui_quoted_table,
+):
+    mo.hstack([
+        mo.vstack([
+            sql_ui_quoted_table,
+            query_output(simple_ledger_ui.value, sql_ui_quoted_table.value)   
+        ]),
+        mo.vstack([
+            sql_ui_bare_table,
+            query_output(simple_ledger_ui.value, sql_ui_bare_table.value)
+        ]) 
+
+    ])
+    return
+
+
+@app.cell
 def _(mo):
     mo.md(r"""
+    Note, that later in the manual whenever the #table form is used in examples, it can also be replaced the "quoted" table name as well as bare table name forms.
+
     Note, that here we use the wildcard symbol (*) to list some columns, instead of specifying column names manually.
 
     Difference to SQL: in BQL using a wildcard as the target list (“*”) selects a good default list of columns, while in traditional SQL the `*` denotes the complete set of columns available in the table.
@@ -965,32 +1036,9 @@ def _(mo):
     * AND (logical conjunction)
     * OR (logical disjunction)
     * NOT (logical negation)
-    * IN (set membership)
     * IS NULL (check if value is NULL), IS NOT NULL
-    """)
-    return
 
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    #### 9.1.2 String operators
-
-    **Comparing strings:**
-
-    * = (equality), != (inequality)
-    * `<` , `<=`, `>`, `>=` ([lexical comparisons](https://www.geeksforgeeks.org/python/string-comparison-in-python]))  _?? What would be an example of any practical usage in beanquery_
-    * substr IN string  (check for substring)
-
-    **Comparing strings to regular expression patterns:**
-
-    * `mystring ~ regex` (case insensitive regexp)
-    * `regex ?~ mystring` (case sensitive regexp. Note, that it has inverted argument order !!!)
-    * `mystring !~ regex` (inverse of ~, same as `NOT ( ... ~ ...)`)
-
-    **Modifications:**
-
-    * \+ (string concatentation)
+    (Set membership — `IN` / `NOT IN` — and the quantified `ANY` / `ALL` operators are covered separately under [Set and collection operators](#915-set-and-collection-operators).)
     """)
     return
 
@@ -1001,18 +1049,17 @@ def _(query_editor):
     SELECT 
          date, account, payee+' || '+narration as my_description, position
     WHERE 
-          account ~ '^expenses'
-          AND "trip-london" IN tags
+          "trip-london" IN tags
           AND NOT payee = "John"
     """
-    sql_ui_operators = query_editor(_sql, label=r"Operators demo regexp, IN, NOT, =, +")
-    sql_ui_operators
+    sql_ui_operators = query_editor(_sql, label=r"Operators demo  IN, NOT, =, +")
+    # sql_ui_operators
     return (sql_ui_operators,)
 
 
 @app.cell
-def _(operators_ledger_ui, query_output, sql_ui_operators):
-    query_output(operators_ledger_ui.value, sql_ui_operators.value) 
+def _():
+    # query_output(operators_ledger_ui.value, sql_ui_operators.value) 
     return
 
 
@@ -1020,19 +1067,82 @@ def _(operators_ledger_ui, query_output, sql_ui_operators):
 def _(query_editor):
     _sql = """\
     SELECT 
-         date, account, payee,narration, position
+         date, account, payee, narration, position
     WHERE 
-          NOT payee IS NOT NULL
-          and '^Expenses' ?~ account
+          account = 'Expenses:Misc'
+          AND payee IS NULL
     """
-    sql_ui_operators_not_null = query_editor(_sql, label=r"Operators demo with NOT NULL and case-sensitive regex")
-    sql_ui_operators_not_null
-    return (sql_ui_operators_not_null,)
+    sql_ui_operators_null = query_editor(_sql, label=r"Operators demo =, IS NULL")
+    # sql_ui_operators_null
+    return (sql_ui_operators_null,)
 
 
 @app.cell
-def _(operators_ledger_ui, query_output, sql_ui_operators_not_null):
-    query_output(operators_ledger_ui.value, sql_ui_operators_not_null.value) 
+def _():
+    # query_output(operators_ledger_ui.value, sql_ui_operators_null.value) 
+    return
+
+
+@app.cell
+def _(
+    mo,
+    operators_ledger_ui,
+    query_output,
+    sql_ui_operators,
+    sql_ui_operators_null,
+):
+    mo.hstack([
+        mo.vstack([
+            sql_ui_operators,
+            query_output(operators_ledger_ui.value, sql_ui_operators.value) 
+        ]),
+        mo.vstack([
+            sql_ui_operators_null,
+            query_output(operators_ledger_ui.value, sql_ui_operators_null.value) 
+        ])
+
+    ])
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### 9.1.2 String operators
+
+    <u>**String modifications:**</u>
+
+    * \+ (string concatentation)
+
+    <u>**Comparing strings:**</u>
+
+    * = (equality), != (inequality)
+    * `<` , `<=`, `>`, `>=` ([lexical comparisons](https://www.geeksforgeeks.org/python/string-comparison-in-python]))  _?? What would be an example of any practical usage in beanquery_
+    * substr IN string  (check for substring)
+
+    **Comparing strings to regular expression patterns:**
+
+    beanquery uses Python [`re`](https://docs.python.org/3/library/re.html) regular expressions, matched as a **substring search** — the pattern may match *anywhere* in the string (use `^` and `$` to anchor). There are three match operators, `~`, `!~` and `?~`, which differ in **argument order** and **default case-sensitivity**:
+
+    * `mystring ~ regex` — pattern on the **right**, **case-insensitive** by default
+    * `mystring !~ regex` — negation of `~` (same as `NOT (mystring ~ regex)`)
+    * `regex ?~ mystring` — pattern on the **left** (inverted argument order !!!), **case-sensitive** by default
+
+    The default case-sensitivity can be flipped with an inline regex flag inside the pattern: `(?i)` forces a **case-insensitive** match, and the scoped `(?-i:...)` forces a **case-sensitive** one. This yields all four combinations of argument order and case-sensitivity:
+
+    | Argument order | Case-sensitivity | How to write it | Negation |
+    |---|---|---|---|
+    | string → pattern | insensitive (default) | `mystring ~ 'regex'` | `mystring !~ 'regex'` |
+    | string → pattern | sensitive | `mystring ~ '(?-i:regex)'` | `mystring !~ '(?-i:regex)'` |
+    | pattern → string | sensitive (default) | `'regex' ?~ mystring` | `NOT ('regex' ?~ mystring)` |
+    | pattern → string | insensitive | `'(?i)regex' ?~ mystring` | `NOT ('(?i)regex' ?~ mystring)` |
+
+    **Negation:** only the `string → pattern` order has a dedicated negation operator, `!~`. There is no negated form of `?~` (`!?~` and `?!~` do not exist), so a `pattern → string` match must be negated with `NOT ( ... )`.
+
+    Let us demonstrate some of this
+
+    **string -> pattern reqular expressions**
+    """)
     return
 
 
@@ -1040,18 +1150,150 @@ def _(operators_ledger_ui, query_output, sql_ui_operators_not_null):
 def _(query_editor):
     _sql = """\
     SELECT 
-         date, account, payee,narration, position
+         date, account, narration
     WHERE 
-          'Misc' IN account
+          account ~ 'expenses'
+    """
+    sql_re_string_pattern_ci_ui = query_editor(_sql, label=r"string -> pattern regex case-insensitive")
+    # sql_re_string_pattern_ci_ui
+    return (sql_re_string_pattern_ci_ui,)
+
+
+@app.cell
+def _():
+    # query_output(operators_ledger_ui.value, sql_re_string_pattern_ci_ui.value) 
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT 
+         date, account, narration
+    WHERE 
+          account ~ '(?-i:Expenses)'
+    """
+    sql_re_string_pattern_cs_ui = query_editor(_sql, label=r"string -> pattern regex case-sensitive")
+    # sql_re_string_pattern_cs_ui
+    return (sql_re_string_pattern_cs_ui,)
+
+
+@app.cell
+def _():
+    # query_output(operators_ledger_ui.value, sql_re_string_pattern_cs_ui.value)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT 
+         date, account, narration
+    WHERE 
+          'Expenses' IN account
     """
     sql_ui_operators_in_substring = query_editor(_sql, label=r"Operators substring")
-    sql_ui_operators_in_substring
+    # sql_ui_operators_in_substring
     return (sql_ui_operators_in_substring,)
 
 
 @app.cell
-def _(operators_ledger_ui, query_output, sql_ui_operators_in_substring):
-    query_output(operators_ledger_ui.value, sql_ui_operators_in_substring.value)
+def _():
+    # query_output(operators_ledger_ui.value, sql_ui_operators_in_substring.value)
+    return
+
+
+@app.cell
+def _(
+    mo,
+    operators_ledger_ui,
+    query_output,
+    sql_re_string_pattern_ci_ui,
+    sql_re_string_pattern_cs_ui,
+    sql_ui_operators_in_substring,
+):
+    mo.hstack([
+        mo.vstack([
+            sql_re_string_pattern_ci_ui,
+            query_output(operators_ledger_ui.value, sql_re_string_pattern_ci_ui.value) 
+        ]),
+        mo.vstack([
+            sql_re_string_pattern_cs_ui,
+            query_output(operators_ledger_ui.value, sql_re_string_pattern_cs_ui.value) 
+        ]),
+        mo.vstack([
+            sql_ui_operators_in_substring,
+            query_output(operators_ledger_ui.value, sql_ui_operators_in_substring.value) 
+        ])
+    ])
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **pattern -> string regular expressions**
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT 
+         date, account, narration
+    WHERE 
+          '(?i)expenses' ?~ account
+    """
+    sql_re_pattern_string_ci_ui = query_editor(_sql, label=r"pattern -> string regex case-insensitive")
+    # sql_re_pattern_string_ci_ui
+    return (sql_re_pattern_string_ci_ui,)
+
+
+@app.cell
+def _():
+    # query_output(operators_ledger_ui.value,sql_re_pattern_string_ci_ui.value) 
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT 
+         date, account, narration
+    WHERE 
+          'Expenses' ?~ account
+    """
+    sql_re_pattern_string_cs_ui = query_editor(_sql, label=r"pattern -> string regex case-sensitive")
+    # sql_re_pattern_string_cs_ui
+    return (sql_re_pattern_string_cs_ui,)
+
+
+@app.cell
+def _():
+    # query_output(operators_ledger_ui.value, sql_re_pattern_string_cs_ui.value) 
+    return
+
+
+@app.cell
+def _(
+    mo,
+    operators_ledger_ui,
+    query_output,
+    sql_re_pattern_string_ci_ui,
+    sql_re_pattern_string_cs_ui,
+):
+    mo.hstack([
+        mo.vstack([
+            sql_re_pattern_string_ci_ui,
+            query_output(operators_ledger_ui.value, sql_re_pattern_string_ci_ui.value) 
+        ]),
+        mo.vstack([
+            sql_re_pattern_string_cs_ui,
+            query_output(operators_ledger_ui.value, sql_re_pattern_string_cs_ui.value) 
+        ])
+
+    ])
     return
 
 
@@ -1075,9 +1317,149 @@ def _(mo):
 
     * `=`, `!=`, `<`, `<=`, `>`, `>=`  (comparisons)
     * date BETWEEN start AND end (check date range, inclusive date range)
-    * date +/- [interval(str)](#1225-intervalstr)
+    * date +/- [interval(str)](#1226-intervalstr)
     * date +/- int  (the same as `date +/- interval('<int> days')`)
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### 9.1.5 IN, ANY, ALL
+
+    The operators in this group test a value against a **collection** of values rather than against a single value. The collection on the right-hand side is a list- or set-valued expression — most often a set-valued column (such as `accounts`, `tags`, `links`; see section 10.2) or a [subquery](#14-subqueries).
+
+    **`IN` and `NOT IN` — set membership**
+
+    * `value IN collection` — true when `value` equals one of the elements of the collection.
+    * `value NOT IN collection` — true when it equals none of them.
+
+    When the collection is a column no brackets are needed (`'Assets:Cash' IN accounts`); brackets are used only to write an explicit list (`account IN ('Assets:Cash', 'Assets:Bank')`) or to wrap a subquery. The `IN` keyword is also used for substring testing on plain strings (`substr IN string`) — see [String operators](#912-string-operators).
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **`ANY` and `ALL` — comparison against any / every element**
+
+    Every comparison shown so far compares one value against **one** other value (`number > 100`, `account ~ 'Food'`). The `ANY` and `ALL` operators generalise this: they compare one value against a **whole collection** of values at once, and reduce the result to a single true/false:
+
+    * `value <op> ANY ( <collection> )` — true when the comparison `<op>` holds for **at least one** element of the collection.
+    * `value <op> ALL ( <collection> )` — true when the comparison `<op>` holds for **every** element of the collection (and, vacuously, true when the collection is empty).
+
+    `<op>` is an ordinary comparison operator — `=`, `!=`, `<`, `>` — or one of the [regular-expression match operators](#912-string-operators) (`~`, `?~`, `!~`).
+
+    To picture the meaning, suppose the collection were the numbers `{1, 4, 9}`:
+
+    * `5 > ANY (...)` is **true** — 5 is greater than at least one element (1 and 4);
+    * `5 > ALL (...)` is **false** — 5 is not greater than every element (it is not greater than 9);
+    * `0 < ALL (...)` is **true** — 0 is smaller than every element.
+
+    Note, that usage of `value = ANY (...)` is equivalent to  `value IN (...)`. It is the other operators (`<`, `>`, `~`, `?~`, …) where `ANY` / `ALL` do something that plain `IN` cannot.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **The brackets are compulsory — and they are *not* a function call.**
+
+    `ANY` and `ALL` are **operators**, not functions, even though `ANY(accounts)` looks like a function call. The parentheses are a mandatory part of the operator's syntax — they delimit the right-hand operand (the collection). The shape is fixed:
+
+    ```
+    value <op> ANY ( collection )
+    value <op> ALL ( collection )
+    ```
+
+    Omitting the brackets is a syntax error (`... ?~ ANY accounts` does not parse). A space before the bracket is allowed, so `ANY (accounts)` and `ANY(accounts)` are equivalent — and that permitted space is itself a hint that this is an operator keyword followed by a parenthesised operand, not a function being called. (By contrast, `IN` does *not* require brackets around a column.)
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **What can go inside the brackets.** The collection must be a **list- or set-valued expression**. There are two common sources:
+
+    1. A **set-valued column**. E.g.  `accounts`, `other_accounts` (the latter after the fix of [bql_iss_288](https://github.com/beancount/beanquery/issues/288))
+
+    1. A **subquery** returning a single column (covered separately in [section 14](#14-subqueries)).
+
+    The examples below use the `other_accounts` column.
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2024-01-01 open Assets:Bank
+    2024-01-01 open Assets:Cash
+    2024-01-01 open Expenses:Food:Meat 
+    2024-01-01 open Expenses:Food:Groceries
+    2024-01-01 open Expenses:Food:Bakery
+    2024-01-01 open Expenses:Transport
+    2024-01-01 open Expenses:Misc
+
+    2024-01-02 * "Buying meat with bank card"
+      Expenses:Food:Meat   40 USD
+      Assets:Bank
+
+    2024-01-05 * "Bus ticket with cash"
+      Expenses:Transport  15 USD
+      Assets:Cash
+
+    2024-01-06 * "Supermarket with cash"
+      Expenses:Food:Groceries   40 USD
+      Expenses:Misc   20 USD
+      Assets:Cash
+
+    2024-01-09 * "Bakery with cash"
+      Expenses:Food:Bakery  60 USD
+      Assets:Cash
+    """
+    arr_ledger_ui = ledger_editor(_ledger, label="Ledger for ANY/ALL over columns")
+    arr_ledger_ui
+    return (arr_ledger_ui,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date, narration, position
+    WHERE account = 'Assets:Cash' AND 'Expenses:Food' ?~ ANY(other_accounts)
+    ORDER BY date
+    """
+    arr_any_query_ui = query_editor(_sql, label="All cash payments, which were used to pay for food (but not necessarily only for food) (ANY)")
+    arr_any_query_ui
+    return (arr_any_query_ui,)
+
+
+@app.cell
+def _(arr_any_query_ui, arr_ledger_ui, query_output):
+    query_output(arr_ledger_ui.value, arr_any_query_ui.value)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date, narration, position
+    WHERE account = 'Assets:Cash' AND 'Expenses:Food' ?~ ALL(other_accounts)
+    ORDER BY date
+    """
+    arr_all_query_ui = query_editor(_sql, label="All cash payments, which were used to pay for food and food only (ALL)")
+    arr_all_query_ui
+    return (arr_all_query_ui,)
+
+
+@app.cell
+def _(arr_all_query_ui, arr_ledger_ui, query_output):
+    query_output(arr_ledger_ui.value, arr_all_query_ui.value)
     return
 
 
@@ -1211,7 +1593,7 @@ def _(mo):
     ...
     ```
 
-    To make things even more confusing, note that when it comes to the transactions table, then probably due to the [bug](https://github.com/beancount/beanquery/issues/277) the `.help FROM` command lists a few more columns for the transactions table, than are available via the [`.describe transactions`](#6-available-tables-introduction) command, e.g. the [id](#1021-the-id-column) column, which is not available via the `.describe transactions`
+    To make things even more confusing, note that when it comes to the transactions table, then probably due to the [bql_iss_277](https://github.com/beancount/beanquery/issues/277) the `.help FROM` command lists a few more columns for the transactions table, than are available via the [`.describe transactions`](#6-available-tables-introduction) command, e.g. the [id](#1021-the-id-column) column, which is not available via the `.describe transactions`
 
 
     ```text
@@ -1491,7 +1873,7 @@ def _(ledger_ui_with_meta, query_output, sql_ui_trans_meta):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Note, that both posting and transaction metadata can also be accessed using the [meta(), entry_meta(), and any_meta()](#1229-meta-entry_meta-and-any_meta) functions.
+    Note, that both posting and transaction metadata can also be accessed using the [meta(), entry_meta(), and any_meta()](#12210-meta-entry_meta-and-any_meta) functions.
     """)
     return
 
@@ -1845,7 +2227,7 @@ def _(mo):
     A special column exists that identifies each transaction uniquely: “id”. It is a unique hash automatically computed from the transaction and should be stable between runs.
     This hash is derived from the contents of the transaction object itself (if you change something about the transaction, e.g. you edit the narration, the id will change).
 
-    Note: even though the `id` field logically belongs to the transaction, it is not available in the `transactions` table via the `.describe transactions` command (an [issue](https://github.com/beancount/beanquery/issues/277) has been raised about this). The only way to find it is to look in the postings using a traditional query.
+    Note: even though the `id` field logically belongs to the transaction, it is not available in the `transactions` table via the `.describe transactions` command (a [bql_iss_277](https://github.com/beancount/beanquery/issues/277) has been raised about this). The only way to find it is to look in the postings using a traditional query.
     """)
     return
 
@@ -1893,7 +2275,7 @@ def _(ledger_id_ui, query_output, sql_ui_id_postings):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Once the `id` field is known, one can use it also for transaction-level filtering.  E.g. one can use the [`PRINT` query](#153-print-print-query) (discussed later) to print a specific entry. This can be useful during debugging.
+    Once the `id` field is known, one can use it also for transaction-level filtering.  E.g. one can use the [`PRINT` query](#163-print-print-query) (discussed later) to print a specific entry. This can be useful during debugging.
     """)
     return
 
@@ -2433,18 +2815,9 @@ def _(mo):
     Beancount offers first-class support for multi-currency accounting. The `CONVERT()` function is a key element of it.
 
     ```
-    convert(amount, str)
-    convert(amount, str, date)
-      Coerce an amount to a particular currency.
-
-    convert(position, str)
-    convert(position, str, date)
-      Coerce a position to a particular currency.
-
-    convert(inventory, str)
-    convert(inventory, str, date)
-      Coerce an inventory to a particular currency.
+    CONVERT(amount | position | inventory, currency [, date])
     ```
+    Converts a value to a target currency that you specify. Works on an Amount, a Position, or a whole Inventory. It looks up a direct rate first; if none exists, it tries to synthesize one via the position's cost currency. If no conversion is possible, it silently returns the value unchanged rather than erroring.
 
     * The first argument is the amount, position, or inventory to be converted.
     * The second argument is the target commodity to convert to.
@@ -2464,7 +2837,7 @@ def _(mo):
     In practice, there are several ways to use the `date` parameter:
     * Specify a fixed date (e.g. `2023-01-02`). This is typically used in queries that convert **Assets** and **Liabilities** to a target currency, since under accepted accounting practices these are translated using the exchange rate in effect on the date of the **Net Worth report**.
     * Pass the `date` column as the date parameter. In this case `CONVERT()` uses the posting date to look up the exchange rate, so each posting may use a different rate. This is typically used to convert **Income** and **Expenses**, since under accepted accounting practices these are translated using the exchange rate in effect on the transaction date.
-    * Omit the date parameter entirely. In this case `CONVERT()` uses the latest available exchange rate (this may have limited accounting meaning).
+    * Omit the date parameter entirely. In this case `CONVERT()` uses the latest available exchange rate (?? does this have any practical meaning from accounting prospective?).
 
     Let us demonstrate this with a simple example:
     """)
@@ -2602,6 +2975,144 @@ def _(convert_ledger_with_cost_ui, convert_with_cost_query_ui, query_output):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    Observe, that `CONVERT()` has used an exchange rate from the `price` directive to convert IVV and IPP to USD.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Another important behavior of the `CONVERT()` is that if an exchange rate is not available for **units** currency it tries to fallback to convert a position to the target currency using the position's **cost**.
+
+    Let us demonstarte this on the below 2 legers. In the example on the right, the direct exchange rate IVV -> EUR was not provided via the `price` notation, so the `CONVERT()` uses position's **cost** value (which is expressed in USD) to convert it to the target currency (EUR). Since IVV to USD is available, but with the following caveats:
+
+     - it is able to do this only for the position, where there cost is available
+     - if prices between different currencies are not consistent, the result may be not what one expected. The below ledger domonstrates, what it means to have inconsistent prices
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Assets:Bank
+    2023-01-01 open Assets:Investment
+    2023-01-01 open Income:Salary
+
+
+    2023-01-01 * "Salary"
+      Income:Salary   -5000 USD
+      Assets:Bank      5000 USD
+
+    2023-01-01 price USD 10 EUR
+    2023-01-01 price IVV 10 USD
+
+    ; This price makes no real life sense, since 
+    ; it contradicts the previous price of IVV in USD
+    ; and the USD to EUR price
+    ; but it is here to demonstrate the behavior of CONVERT() 
+
+    2023-01-01 price IVV 20 EUR
+
+    2023-01-01 * "Invest 1"
+      Assets:Investment    1 IVV {10 USD} 
+      Assets:Bank         -10 USD
+
+    2023-01-02 * "Invest 2, not at cost"
+      Assets:Investment    1 IVV @@ 10 USD
+      Assets:Bank         -10 USD
+      """
+    convert_ledger_with_cost_and_no_cost_ui = ledger_editor(_ledger, label="Ledger for CONVERT() demo with cost and no cost")
+    # convert_ledger_with_cost_and_no_cost_ui
+    return (convert_ledger_with_cost_and_no_cost_ui,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date, narration, position, 
+    convert(position, "USD") as pos_in_usd, 
+    convert(position, "EUR") as pos_in_eur
+    WHERE account = "Assets:Investment"
+    """
+
+    convert_with_cost_to_eur_query_ui = query_editor(_sql, label="CONVERT() with cost example")
+    # convert_with_cost_to_eur_query_ui
+    return (convert_with_cost_to_eur_query_ui,)
+
+
+@app.cell
+def _():
+    # query_output(convert_ledger_with_cost_and_no_cost_ui.value, convert_with_cost_to_eur_query_ui.value)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Assets:Bank
+    2023-01-01 open Assets:Investment
+    2023-01-01 open Income:Salary
+
+
+    2023-01-01 * "Salary"
+      Income:Salary   -5000 USD
+      Assets:Bank      5000 USD
+
+    2023-01-01 price USD 10 EUR
+    2023-01-01 price IVV 10 USD
+
+    ; This price makes no real life sense, since 
+    ; it contradicts the previous price of IVV in USD
+    ; and the USD to EUR price
+    ; but it is here to demonstrate the behavior of CONVERT() 
+
+    ; 2023-01-01 price IVV 20 EUR ; <= commented out
+
+    2023-01-01 * "Invest 1"
+      Assets:Investment    1 IVV {10 USD} 
+      Assets:Bank         -10 USD
+
+    2023-01-02 * "Invest 2, not at cost"
+      Assets:Investment    1 IVV @@ 10 USD
+      Assets:Bank         -10 USD
+      """
+    convert_ledger_with_cost_and_no_cost__v2_ui = ledger_editor(_ledger, label="Ledger CONVERT() will fall back to convert position cost, if available")
+    # convert_ledger_with_cost_and_no_cost__v2_ui
+    return (convert_ledger_with_cost_and_no_cost__v2_ui,)
+
+
+@app.cell
+def _():
+    # query_output(convert_ledger_with_cost_and_no_cost__v2_ui.value, convert_with_cost_to_eur_query_ui.value)
+    return
+
+
+@app.cell
+def _(
+    convert_ledger_with_cost_and_no_cost__v2_ui,
+    convert_ledger_with_cost_and_no_cost_ui,
+    convert_with_cost_to_eur_query_ui,
+    mo,
+    query_output,
+):
+    mo.hstack([
+        mo.vstack([
+            convert_ledger_with_cost_and_no_cost_ui,
+            query_output(convert_ledger_with_cost_and_no_cost_ui.value, convert_with_cost_to_eur_query_ui.value)   
+        ]),
+        mo.vstack([
+            convert_ledger_with_cost_and_no_cost__v2_ui,
+            query_output(convert_ledger_with_cost_and_no_cost__v2_ui.value, convert_with_cost_to_eur_query_ui.value)   
+        ])
+    ])
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     For aggregate queries, you can either convert an inventory created by `SUM()`, or sum the results of `CONVERT()`. Note that the former approach is not possible when a different exchange rate must be applied to each posting (i.e., when the `date` column is used instead of a fixed date).
     """)
     return
@@ -2635,7 +3146,135 @@ def _(
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 12.2.4 ROOT()
+    #### 12.2.4 VALUE()
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ```
+    VALUE(position | inventory [, date])
+    ```
+    `VALUE()` is a close sibling of [`CONVERT()`](#1223-convert). Whilst `CONVERT()` expresses a value in a target currency **you** specify, `VALUE()` expresses a value in the position's **cost currency**. If the cost is not available, the value is returned unchanged
+
+    * The first argument is the position or inventory to be valued.
+    * The second (optional) argument is the date at which the price is looked up, with the same semantics as in `CONVERT()`: the latest price on or before (but not after) that date is used, and if the date is omitted the latest available price is used.
+
+    Let us start with a simple portfolio held at cost:
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Assets:Bank
+    2023-01-01 open Assets:Investment
+    2023-01-01 open Income:Salary
+
+    2023-01-01 * "Salary"
+      Income:Salary   -5000 USD
+      Assets:Bank      5000 USD
+
+    2023-01-15 * "Buy 10 IVV at a cost of 100 USD each"
+      Assets:Investment   10 IVV {100 USD}
+      Assets:Bank        -1000 USD
+
+    ; latest market price, higher than the purchase cost
+    2023-01-31 price IVV 120 USD
+    """
+    value_ledger_ui = ledger_editor(_ledger, label="Ledger for VALUE() function demo")
+    value_ledger_ui
+    return (value_ledger_ui,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date, account, narration, position,
+           value(position) as market_value
+    WHERE account = 'Assets:Investment'
+    """
+    value_query_ui = query_editor(_sql, label="VALUE() function demo")
+    value_query_ui
+    return (value_query_ui,)
+
+
+@app.cell
+def _(query_output, value_ledger_ui, value_query_ui):
+    query_output(value_ledger_ui.value, value_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Let us compare in more details **`VALUE()` vs `CONVERT()`.** The two functions overlap but are not interchangeable:
+
+    | | `VALUE(pos [, date])` | `CONVERT(pos, currency [, date])` |
+    |---|---|---|
+    | Target currency | inferred (the position's cost currency) | you specify it explicitly |
+    | Position **not** at cost (e.g. cash) | returned **unchanged** | converted to the target currency |
+    | Typical use | mark a portfolio **to market** | express balances **in one reporting currency** |
+
+    The example below puts them side by side on a ledger that holds both a stock (at cost) and plain cash.
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Assets:Bank
+    2023-01-01 open Assets:Investment
+    2023-01-01 open Income:Salary
+
+    2023-01-01 * "Salary"
+      Income:Salary   -5000 USD
+      Assets:Bank      5000 USD
+
+    2023-01-15 * "Buy 10 IVV at a cost of 100 USD each"
+      Assets:Investment   10 IVV {100 USD}
+      Assets:Bank        -1000 USD
+
+    2023-01-16 * "Buy 10 IVV NOT at a cost of 100 USD each"
+      Assets:Investment   10 IVV @ 100 USD
+      Assets:Bank        -1000 USD
+
+    2023-01-31 price IVV 120 USD
+    2023-01-31 price USD 0.9 EUR
+    """
+    value_vs_convert_ledger_ui = ledger_editor(_ledger, label="Ledger comparing VALUE() and CONVERT()")
+    value_vs_convert_ledger_ui
+    return (value_vs_convert_ledger_ui,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT date, account, narration, position,
+           value(position) as value_func,
+           convert(position, 'USD') as convert_usd,
+           convert(position, 'EUR') as convert_eur
+    WHERE account = 'Assets:Investment'
+    """
+    value_vs_convert_query_ui = query_editor(_sql, label="VALUE() vs CONVERT() side by side")
+    value_vs_convert_query_ui
+    return (value_vs_convert_query_ui,)
+
+
+@app.cell
+def _(query_output, value_vs_convert_ledger_ui, value_vs_convert_query_ui):
+    query_output(value_vs_convert_ledger_ui.value, value_vs_convert_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### 12.2.5 ROOT()
     """)
     return
 
@@ -2707,12 +3346,12 @@ def _(ledger_root_func_ui, query_output, root_func_query_ui):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 12.2.5 INTERVAL(str)
+    #### 12.2.6 INTERVAL(str)
 
     The BQL function `interval('...')` creates an object of type `relativedelta` that can be used to modify dates using the **[+/-](#914-date-operators)** operator. Example: `date - interval('2 month')`.
     (plural s can be appended)
 
-    Instead of `month`, you can use: `day(s)`, `year(s)`, and, once the [PR280](https://github.com/beancount/beanquery/pull/280) is accepted, also `week(s)`, `decade(s)`, `century/centuries`
+    Instead of `month`, you can use: `day(s)`, `year(s)`, and, once the [bql_pr_280](https://github.com/beancount/beanquery/pull/280) is accepted, also `week(s)`, `decade(s)`, `century/centuries`
 
     This, for instance, can be used to select all expenses for the last 4 months:
 
@@ -2726,7 +3365,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 12.2.6 DATE_BIN() and DATE_TRUNC()
+    #### 12.2.7 DATE_BIN() and DATE_TRUNC()
     """)
     return
 
@@ -2734,7 +3373,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Both functions map a date down to the **start of a period** and return a **date**, which makes them ideal as `GROUP BY` keys for aggregating postings by week, month, quarter, year, or fiscal period. (Contrast this with [`date_part()`](#1227-date_part), which returns an **integer** component of a date rather than a date.)
+    Both functions map a date down to the **start of a period** and return a **date**, which makes them ideal as `GROUP BY` keys for aggregating postings by week, month, quarter, year, or fiscal period. (Contrast this with [`date_part()`](#1228-date_part), which returns an **integer** component of a date rather than a date.)
 
     They differ only in how the period boundaries are defined:
 
@@ -2801,7 +3440,7 @@ def _(mo):
     ```
     Is a function for rounding timestamps down into fixed-width intervals, called the `stride`, aligned to an `origin`. It is similar to SQL's `date_bin()` but extended to accept strides with units of months and years (which have variable length). The function is particularly useful with `GROUP BY` to aggregate postings by week, month, quarter, fiscal year, or any other custom-aligned period.
 
-    * `stride` — either an [`interval`](#1225-intervalstr) (e.g. `interval('1 month')`) or a string accepted by `interval()` (e.g. `'1 month'`, `'3 days'`, `'1 year'`).
+    * `stride` — either an [`interval`](#1226-intervalstr) (e.g. `interval('1 month')`) or a string accepted by `interval()` (e.g. `'1 month'`, `'3 days'`, `'1 year'`).
     * `source` — the date to be binned.
     * `origin` — any date that defines the alignment of the bins. The origin does **not** have to be earlier than `source`; bins extend in both directions.
 
@@ -2966,7 +3605,7 @@ def _(date_period_ledger_ui, date_trunc_group_query_ui, query_output):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 12.2.7 DATE_PART()
+    #### 12.2.8 DATE_PART()
     """)
     return
 
@@ -3000,7 +3639,7 @@ def _(mo):
 
     An unrecognised `field` returns `NULL`. Note that `date_part('weekday', ...)` and `date_part('isoweekday', ...)` use **different** numbering conventions — pick the one that matches the rest of your query.
 
-    [`date_trunc()` and `date_bin()`](#1226-date_bin-and-date_trunc) return a **date** (the start of a period), whereas `date_part()` returns the period number as an **integer**, which is convenient for `GROUP BY`, `WHERE`, and arithmetic.
+    [`date_trunc()` and `date_bin()`](#1227-date_bin-and-date_trunc) return a **date** (the start of a period), whereas `date_part()` returns the period number as an **integer**, which is convenient for `GROUP BY`, `WHERE`, and arithmetic.
     """)
     return
 
@@ -3101,7 +3740,7 @@ def _(date_part_ledger_ui, date_part_weekend_query_ui, query_output):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 12.2.8 COALESCE()
+    #### 12.2.9 COALESCE()
     """)
     return
 
@@ -3113,7 +3752,7 @@ def _(mo):
     coalesce(expr1, expr2, ...) -> value
     ```
 
-    Note: at the time of writing this function is [not displayed by the `.help targets` shell command](https://github.com/beancount/beanquery/issues/284)
+    Note: at the time of writing this function is not displayed by the `.help targets` shell command (see [bql_iss_284](https://github.com/beancount/beanquery/issues/284))
 
     Returns the value of the **first argument that is not `NULL`**, evaluating the arguments left to right. If every argument is `NULL`, the result is `NULL`. This is the standard SQL `COALESCE`, typically used to supply a fallback value when something might be missing. The function name is case-insensitive, so `coalesce(...)` and `COALESCE(...)` are equivalent.
 
@@ -3217,7 +3856,7 @@ def _(coalesce_ledger_ui, coalesce_multi_query_ui, query_output):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 12.2.9 META(), ENTRY_META() and ANY_META()
+    #### 12.2.10 META(), ENTRY_META() and ANY_META()
     """)
     return
 
@@ -3241,7 +3880,7 @@ def _(mo):
 
     In Beancount, metadata can be attached either to the transaction (indented under the date line) or to an individual posting (indented under the posting). `meta()` sees only the latter, `entry_meta()` only the former, and `any_meta()` combines them — preferring the posting's value when the key exists at both levels.
 
-    All three return the generic type `object`, so the same type caveat as [`coalesce()`](#1228-coalesce) applies: wrap them in `str()` (or another cast) before combining them with values of a concrete type.
+    All three return the generic type `object`, so the same type caveat as [`coalesce()`](#1229-coalesce) applies: wrap them in `str()` (or another cast) before combining them with values of a concrete type.
 
     The ledger below carries a `project` key in three different positions so the difference is easy to see: on the posting only, on the transaction only, and on both at once.
     """)
@@ -3741,7 +4380,491 @@ def _(having_count_query_ui, having_ledger_ui, query_output):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 14 Statement operators (OPEN ON, CLOSE ON, CLEAR)
+    ### 13.5 PIVOT BY
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    The result of an [aggregate query](#121-aggregate-functions-and-aggregate-queries) grouped by two columns is a one-dimensional list of rows, where each row corresponds to one combination of the two grouping values. The `PIVOT BY` clause rotates such a result into a **two-dimensional table**: the values of one column become the rows, the values of the other column become the columns, and the remaining target columns fill the cells.
+
+    The syntax is:
+
+    ```text
+    PIVOT BY <column1>, <column2>
+    ```
+
+    where the values of `<column1>` become the **rows** and the values of `<column2>` become the **columns** of the pivoted table. The columns can be referenced either by name or by their 1-based position in the targets list (e.g. `PIVOT BY 1, 2`).
+
+    The following rules apply:
+
+    * Both columns must be present in the `SELECT` targets list.
+    * The two columns must be different.
+    * The second column must be a `GROUP BY` column (this guarantees that its values are unique within each row).
+    * The header of the first output column is named `<column1>/<column2>` as a reminder of what the rows and the columns represent.
+    * Combinations for which there is no data are filled with `NULL` (rendered as empty cells).
+
+    Let us demonstrate this with the ledger below, which has postings to three expense accounts spread over two years (note that `Expenses:Books` has postings only in 2024):
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Assets:Bank
+    2023-01-01 open Expenses:Food
+    2023-01-01 open Expenses:Transport
+    2023-01-01 open Expenses:Books
+
+    2023-02-05 * "Groceries"
+      Expenses:Food   40 USD
+      Assets:Bank
+
+    2023-07-10 * "Restaurant"
+      Expenses:Food   60 USD
+      Assets:Bank
+
+    2023-03-15 * "Bus pass"
+      Expenses:Transport  30 USD
+      Assets:Bank
+
+    2024-01-20 * "Groceries"
+      Expenses:Food   50 USD
+      Assets:Bank
+
+    2024-04-02 * "Taxi"
+      Expenses:Transport  25 USD
+      Assets:Bank
+
+    2024-08-09 * "Train ticket"
+      Expenses:Transport  45 USD
+      Assets:Bank
+
+    2024-11-11 * "Novel"
+      Expenses:Books  25 USD
+      Assets:Bank
+    """
+
+    pivot_ledger_ui = ledger_editor(_ledger, label="Ledger for PIVOT BY demo")
+    pivot_ledger_ui
+    return (pivot_ledger_ui,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    First, the aggregate query **without** `PIVOT BY` — one row per (account, year) combination:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, year, sum(position) AS balance
+    WHERE account ~ '^Expenses'
+    GROUP BY account, year
+    ORDER BY account, year
+    """
+    pivot_flat_query_ui = query_editor(_sql, label="Aggregate query without PIVOT BY")
+    pivot_flat_query_ui
+    return (pivot_flat_query_ui,)
+
+
+@app.cell
+def _(pivot_flat_query_ui, pivot_ledger_ui, query_output):
+    query_output(pivot_ledger_ui.value, pivot_flat_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **Example 1** — adding `PIVOT BY account, year` turns the same result into a table with one row per account and one column per year. Note the `account/year` header of the first column and the empty (NULL) cell for `Expenses:Books` in 2023:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, year, sum(position) AS balance
+    WHERE account ~ '^Expenses'
+    GROUP BY account, year
+    PIVOT BY account, year
+    """
+    pivot_by_query_ui = query_editor(_sql, label="PIVOT BY account, year")
+    pivot_by_query_ui
+    return (pivot_by_query_ui,)
+
+
+@app.cell
+def _(pivot_by_query_ui, pivot_ledger_ui, query_output):
+    query_output(pivot_ledger_ui.value, pivot_by_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    The same query can be written with column positions instead of names: `PIVOT BY 1, 2`.
+
+    **Example 2** — swapping the two columns (`PIVOT BY year, account`) transposes the table: years become the rows and accounts become the columns:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, year, sum(position) AS balance
+    WHERE account ~ '^Expenses'
+    GROUP BY account, year
+    PIVOT BY year, account
+    """
+    pivot_swapped_query_ui = query_editor(_sql, label="PIVOT BY year, account")
+    pivot_swapped_query_ui
+    return (pivot_swapped_query_ui,)
+
+
+@app.cell
+def _(pivot_ledger_ui, pivot_swapped_query_ui, query_output):
+    query_output(pivot_ledger_ui.value, pivot_swapped_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **Example 3** — if the targets list contains **more than one** remaining column besides the two pivot columns, each pivoted column is expanded into a group of columns, one per remaining target. The headers are then named `<value>/<target-name>`:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, year, sum(position) AS balance, count(*) AS postings
+    WHERE account ~ '^Expenses'
+    GROUP BY account, year
+    PIVOT BY account, year
+    """
+    pivot_two_values_query_ui = query_editor(_sql, label="PIVOT BY with two value columns")
+    pivot_two_values_query_ui
+    return (pivot_two_values_query_ui,)
+
+
+@app.cell
+def _(pivot_ledger_ui, pivot_two_values_query_ui, query_output):
+    query_output(pivot_ledger_ui.value, pivot_two_values_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## 14 Subqueries
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    A **subquery** is a `SELECT` statement nested, in parentheses, inside another query. beanquery supports subqueries in two distinct places:
+
+    * In the **FROM clause**, where a subquery acts as a *derived table* — the outer query reads from the result of the inner query instead of from a real table (see [section 14.1](#141-subqueries-in-the-from-clause-derived-tables)).
+    * Inside a **WHERE expression**, together with the `IN`, `ANY` and `ALL` operators, where a subquery supplies a list of values to test against (see [section 14.2](#142-subqueries-in-where-in-any-and-all)).
+
+    Two limitations are worth stating up front:
+
+    * **Correlated subqueries are not supported.** A subquery cannot reference columns of the current row of the outer query; it is evaluated once, independently of the outer query.
+    * A subquery used with `IN` / `ANY` / `ALL` **must return exactly one column**, otherwise beanquery raises *"subquery has too many columns"*.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### 14.1 Subqueries in the FROM clause (derived tables)
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    A subquery written in parentheses in the `FROM` clause becomes a temporary table that the outer query selects from. The columns of this derived table are the named targets of the inner query, so remember to give the inner expressions names with `AS`.
+
+    Note, that such subquery can be used only in the #table form of the `SELECT` query.
+
+    ```
+    SELECT a + 2 AS b FROM (SELECT 3 AS a FROM #)
+    ```
+
+    Derived tables shine in two situations where the [HAVING clause](#134-having) cannot help:
+
+    1. **Aggregating over the result of an aggregation** — an *aggregate of an aggregate*. beanquery does not allow nesting aggregate functions directly (`max(sum(number))` is rejected), and `HAVING` can only *filter* groups, not aggregate them a second time.
+    2. **Filtering or sorting on a computed value by its alias** — the outer query refers to the inner query's named columns with ordinary (non-aggregate) expressions, instead of repeating the aggregate functions.
+
+    Let us use the ledger below — three expense categories: `Food` = 100 (2 postings), `Transport` = 15 (1 posting), `Books` = 30 (2 postings).
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2024-01-01 open Assets:Bank
+    2024-01-01 open Expenses:Food
+    2024-01-01 open Expenses:Transport
+    2024-01-01 open Expenses:Books
+
+    2024-01-02 * "Groceries"
+      Expenses:Food   40 USD
+      Assets:Bank
+
+    2024-01-03 * "Groceries"
+      Expenses:Food   5 USD
+      Assets:Bank
+
+    2024-01-05 * "Restaurant"
+      Expenses:Food   60 USD
+      Assets:Bank
+
+    2024-01-09 * "Bus ticket"
+      Expenses:Transport  15 USD
+      Assets:Bank
+
+    2024-01-20 * "Novel"
+      Expenses:Books  25 USD
+      Assets:Bank
+
+    2024-01-22 * "Comic"
+      Expenses:Books  10 USD
+      Assets:Bank
+    """
+
+    subq_ledger_ui = ledger_editor(_ledger, label="Ledger for subquery demos")
+    subq_ledger_ui
+    return (subq_ledger_ui,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **Use case 1 — aggregate of an aggregate.** Suppose we want summary statistics *across* the expense categories: how many categories there are, the largest category total, and the average spend per category. Each of these aggregates over the per-category totals, so the inner query computes one total per category and the outer query aggregates those rows. (beanquery has no `avg()` function, so the average is computed as `sum(total) / count(account)`.)
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT
+      count(account) AS qnt_categories,
+      min(total) AS smallest_category,
+      max(total) AS largest_category,
+      sum(total) / count(account) AS avg_per_category
+    FROM (
+      SELECT account, sum(number) AS total
+      WHERE account ~ '^Expenses'
+      GROUP BY account
+    )
+    """
+    subq_aggofagg_query_ui = query_editor(_sql, label="Aggregate of an aggregate")
+    subq_aggofagg_query_ui
+    return (subq_aggofagg_query_ui,)
+
+
+@app.cell
+def _(query_output, subq_aggofagg_query_ui, subq_ledger_ui):
+    query_output(subq_ledger_ui.value, subq_aggofagg_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    There is no way to express this with `HAVING` (which only filters) or with a single `GROUP BY` query (which cannot nest aggregates).
+
+    **Use case 2 — filtering on a computed alias.** Here the inner query computes a total and a posting count per category, and the outer query keeps only the categories with a total above 20 **and** more than one posting, referring to the computed columns by their names `total` and `n`.
+
+    Unlike use case 1, this *can* be done with `HAVING` — but `HAVING` cannot reference the output aliases `total` and `n`, so the aggregate expressions have to be repeated in the condition.
+
+    Let us show 2 versions of query for this situation (with subquery and with `HAVING`)
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, total, n
+    FROM (
+      SELECT account, sum(number) AS total, count(number) AS n
+      WHERE account ~ '^Expenses'
+      GROUP BY account
+    )
+    WHERE total > 20 AND n > 1
+    ORDER BY total
+    """
+    subq_alias_query_ui = query_editor(_sql, label="Filtering on a computed alias (subquery)")
+    # subq_alias_query_ui
+    return (subq_alias_query_ui,)
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, sum(number) AS total, count(number) AS n
+    WHERE account ~ '^Expenses'
+    GROUP BY account
+    HAVING sum(number) > 20 AND count(number) > 1
+    ORDER BY sum(number)
+    """
+    subq_having_equiv_query_ui = query_editor(_sql, label="Equivalent query using HAVING")
+    # subq_having_equiv_query_ui
+    return (subq_having_equiv_query_ui,)
+
+
+@app.cell
+def _(
+    mo,
+    query_output,
+    subq_alias_query_ui,
+    subq_having_equiv_query_ui,
+    subq_ledger_ui,
+):
+    mo.hstack([
+        mo.vstack([
+            subq_alias_query_ui,
+            query_output(subq_ledger_ui.value, subq_alias_query_ui.value)
+        ]),
+        mo.vstack([
+            subq_having_equiv_query_ui,
+            query_output(subq_ledger_ui.value, subq_having_equiv_query_ui.value)
+        ])
+    ])
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### 14.2 Subqueries in WHERE: IN, ANY and ALL
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    A single-column subquery can be used on the right-hand side of the `IN`, `ANY` and `ALL` operators to test a value against the list of values it returns:
+
+    * `x IN (SELECT ...)` — true when `x` equals one of the returned values.
+    * `x <op> ANY (SELECT ...)` — true when the comparison `<op>` holds for **at least one** returned value.
+    * `x <op> ALL (SELECT ...)` — true when the comparison `<op>` holds for **every** returned value.
+
+    Here `<op>` is a comparison operator. With `=`, the `ANY` form is just a more verbose `IN` (`x = ANY (...)` is the same as `x IN (...)`), so `ANY` and `ALL` are mainly useful together with `<` and `>`:
+
+    * `x > ALL (SELECT ...)` means *x is greater than the largest* returned value.
+    * `x > ANY (SELECT ...)` means *x is greater than the smallest* returned value — note that, despite how it reads in English, `> ANY` does **not** mean "greater than all of them".
+
+    These subqueries are part of the `WHERE` expression, so they work in **both** SELECT query types — the [traditional form](#8-select-query) and the [#table form](#8-select-query) — and the examples below use the traditional form (no `FROM #postings`).
+
+    A common pattern is a two-step selection: an inner aggregate query identifies the accounts of interest, and the outer query then returns the individual postings of those accounts. Here the inner query finds expense accounts whose total reaches 40, and the outer query lists every posting belonging to them:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, date, number
+    WHERE account IN (
+      SELECT account
+      WHERE account ~ '^Expenses'
+      GROUP BY account
+      HAVING sum(number) >= 40
+    )
+    ORDER BY account, date
+    """
+    subq_in_query_ui = query_editor(_sql, label="All postings of accounts, where total of that account > 40")
+    subq_in_query_ui
+    return (subq_in_query_ui,)
+
+
+@app.cell
+def _(query_output, subq_in_query_ui, subq_ledger_ui):
+    query_output(subq_ledger_ui.value, subq_in_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    The next example uses `> ALL` to compare each posting against a set of values computed by a subquery. This is the main reason to reach for `ANY` / `ALL`: beanquery has no scalar subqueries (`number > (SELECT max(number) ...)` is rejected), so a quantified comparison is the way to test a value against a subquery result.
+
+    The query lists the single expense postings that are larger than **every** `Expenses:Books` purchase.
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, date, number
+    WHERE account ~ '^Expenses'
+    AND number > ALL (SELECT number WHERE account ~ 'Expenses:Books')
+    ORDER BY number
+    """
+    subq_all_query_ui = query_editor(_sql, label="Expenses larger than the most expensive book")
+    subq_all_query_ui
+    return (subq_all_query_ui,)
+
+
+@app.cell
+def _(query_output, subq_all_query_ui, subq_ledger_ui):
+    query_output(subq_ledger_ui.value, subq_all_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Swapping `ALL` for `ANY` changes the meaning from "every" to "at least one". The query below lists the expense postings that are smaller than **ANY** `Expenses:Books` purchase — that is, smaller than the *largest* book amount.
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, date, number
+    WHERE account ~ '^Expenses'
+    AND number < ANY (SELECT number WHERE account ~ 'Expenses:Books')
+    ORDER BY number
+    """
+    subq_any_query_ui = query_editor(_sql, label="Expenses smaller than the most expensive book")
+    subq_any_query_ui
+    return (subq_any_query_ui,)
+
+
+@app.cell
+def _(query_output, subq_any_query_ui, subq_ledger_ui):
+    query_output(subq_ledger_ui.value, subq_any_query_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## 15 Statement operators (OPEN ON, CLOSE ON, CLEAR)
     """)
     return
 
@@ -3808,7 +4931,7 @@ def _(ledger_editor):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 14.1 Opening a Period (OPEN ON clause)
+    #### 15.1 Opening a Period (OPEN ON clause)
     """)
     return
 
@@ -3936,7 +5059,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 14.2 Closing a Period (CLOSE ON clause)
+    #### 15.2 Closing a Period (CLOSE ON clause)
     """)
     return
 
@@ -3995,7 +5118,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 14.3 Clearing Income & Expenses (CLEAR clause)
+    #### 15.3 Clearing Income & Expenses (CLEAR clause)
     """)
     return
 
@@ -4103,7 +5226,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #### 14.4 Example Statements
+    #### 15.4 Example Statements
     """)
     return
 
@@ -4196,7 +5319,7 @@ def _(ledger_ui_open_close, query_output, sql_ui_bal_sheet):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 15 High-level shortcuts (JOURNAL, BALANCE, PRINT)
+    ## 16 High-level shortcuts (JOURNAL, BALANCE, PRINT)
     """)
     return
 
@@ -4245,7 +5368,7 @@ def _(ledger_editor):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### 15.1 Selecting Journals (JOURNAL query)
+    ### 16.1 Selecting Journals (JOURNAL query)
     """)
     return
 
@@ -4300,7 +5423,7 @@ def _(ledger_ui_journal, query_output, sql_ui_journal_balance):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### 15.2 Selecting Balances (BALANCES query)
+    ### 16.2 Selecting Balances (BALANCES query)
     """)
     return
 
@@ -4381,7 +5504,7 @@ def _(
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ?? It seems that the `SELECT ... WHERE`  offers the same functionality, but with a better flexibility. E.g. it is also possible to filter specific accounts, and / or apply the [`root()`](#1224-root) function to accounts.
+    ?? It seems that the `SELECT ... WHERE`  offers the same functionality, but with a better flexibility. E.g. it is also possible to filter specific accounts, and / or apply the [`root()`](#1225-root) function to accounts.
 
     E.g.: would it be possible to do the following with the BALANCES query, where we select balances only for assets?
     """)
@@ -4408,7 +5531,7 @@ def _(ledger_ui_journal, query_output, sql_ui_balances_where_per_account):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### 15.3 Print (PRINT query)
+    ### 16.3 Print (PRINT query)
     """)
     return
 
@@ -4457,7 +5580,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 16 Usage of beanquery with Data Frames
+    ## 17 Usage of beanquery with Data Frames
     """)
     return
 
@@ -4473,7 +5596,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 17 Working around beanquery limitations
+    ## 18 Working around beanquery limitations
     """)
     return
 
@@ -4485,11 +5608,7 @@ def _(mo):
 
     _#TODO: add information_
 
-    ### 17.1 No PIVOT functionality
-
-    * Use dataframes
-
-    ### 17.2 No table joining
+    ### 18.1 No table joining
 
     * Use built in functions
     * Use data frames
@@ -4500,7 +5619,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 18 Example queries for typical situations
+    ## 19 Example queries for typical situations
     """)
     return
 
@@ -4518,7 +5637,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### 18.1 Simple journal ledger of expense transactions
+    ### 19.1 Simple journal ledger of expense transactions
     """)
     return
 
@@ -4608,7 +5727,7 @@ def _(
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### 18.2 Net Worth and P&L-like reports in multi-commodities ledger
+    ### 19.2 Net Worth and P&L-like reports in multi-commodities ledger
     """)
     return
 
@@ -4787,7 +5906,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 19 Appendixes
+    ## 20 Appendixes
     """)
     return
 
@@ -4795,7 +5914,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### 19.1 Appendix A: Shell variables
+    ### 20.1 Appendix A: Shell variables
     """)
     return
 
@@ -4827,7 +5946,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### 19.2 Appendix B: Display precision
+    ### 20.2 Appendix B: Display precision
 
     Let us discuss the subject of a display precision. Beanquery does not assume a fixed number of decimal digits for a currency. Instead, the display precision is **inferred from the ledger**: while parsing, beancount looks at every amount and, for each currency, records how many fractional digits it was written with. The precision then used to display that currency is the **most frequently occurring** number of fractional digits seen for it (the statistical mode).
 
@@ -5027,6 +6146,188 @@ def _(ledger_editor):
 @app.cell
 def _(ledger_precision3_ui, query_output, sql_precision_agg_ui):
     query_output(ledger_precision3_ui.value, sql_precision_agg_ui.value)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### 20.3 Appendix C: Named queries (the `query` directive and `.run`)
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Queries that you run regularly do not have to be retyped every time. You can store them **inside your Beancount ledger file** with the `query` directive and then execute them by name from the beanquery shell with the `.run` command. Because the queries live in the ledger, they sit next to the data they describe and are version-controlled together with the rest of the file.
+
+    A `query` directive has three parts:
+
+    ```text
+    YYYY-MM-DD query "name" "
+      <query string>
+    "
+    ```
+
+    * a **date** (its role is explained in section 20.3.2 below),
+    * a **name** — a quoted string by which the query is invoked, and
+    * the **query string** itself — a quoted string, which may span several lines.
+
+    For example:
+
+    ```text
+    2024-01-01 query "expenses-2023" "
+      SELECT account, sum(position) AS total
+      FROM year >= 2000
+      WHERE account ~ 'Expenses'
+      GROUP BY account
+      ORDER BY account
+    "
+    ```
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### 20.3.1 Running named queries with `.run`
+
+    Inside the shell, the `.run` command executes the queries stored in the file:
+
+    | Command | Effect |
+    |---|---|
+    | `.run <name>` | Run the named query. |
+    | `.run` | List the names of all available named queries. |
+    | `.run *` | Run **all** named queries in turn (each preceded by its name). |
+
+    The query name supports **tab completion**, so typing `.run exp` and pressing `Tab` completes it to `expenses-2023`.
+
+    A short shell session with the directive shown above looks like this:
+
+    ```shell
+    beanquery> .run
+    expenses-2023
+
+    beanquery> .run expenses-2023
+         account        total
+    ------------------  ------
+    Expenses:Food       40 USD
+    Expenses:Transport  30 USD
+
+    beanquery>
+    ```
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### 20.3.2 The directive date is the default CLOSE date
+
+    The date of a `query` directive is not just documentation. When the stored query has a `FROM` clause **but does not specify its own `CLOSE`** (see [section 15.2](#152-closing-a-period-close-on-clause)), running it with `.run` uses the directive's date as the default **CLOSE date**. This makes the directive date a natural "as of" date for the report — a query dated `2024-01-01` reports the state of the books at the end of 2023.
+
+    Two details are worth keeping in mind:
+
+    * As everywhere in Beancount, the closing date is **exclusive**, so the date `2024-01-01` includes everything up to and including 2023-12-31.
+    * The default close date is applied **only when the query contains a `FROM` clause**. A query written without `FROM` (for example `SELECT … WHERE … GROUP BY …`) ignores the directive date and considers the whole ledger.
+
+    The notebook below cannot reach into the interactive shell, so it cannot run `.run` directly. Instead it demonstrates the behaviour by spelling out the query that `.run expenses-2023` executes — the same `SELECT`, with `CLOSE ON 2024-01-01` (the directive's date) added explicitly.
+    """)
+    return
+
+
+@app.cell
+def _(ledger_editor):
+    _ledger = """\
+    2023-01-01 open Assets:Bank
+    2023-01-01 open Expenses:Food
+    2023-01-01 open Expenses:Transport
+
+    2023-06-15 * "Groceries"
+      Expenses:Food       40 USD
+      Assets:Bank
+
+    2023-09-20 * "Bus pass"
+      Expenses:Transport  30 USD
+      Assets:Bank
+
+    2024-03-10 * "Groceries"
+      Expenses:Food       55 USD
+      Assets:Bank
+
+    2024-01-01 query "expenses-2023" "
+      SELECT account, sum(position) AS total
+      FROM year >= 2000
+      WHERE account ~ 'Expenses'
+      GROUP BY account
+      ORDER BY account
+    "
+    """
+
+    namedq_ledger_ui = ledger_editor(_ledger, label="Ledger with a stored query directive")
+    namedq_ledger_ui
+    return (namedq_ledger_ui,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    The query below is exactly what `.run expenses-2023` executes: the stored `SELECT` with the directive's date supplied as `CLOSE ON 2024-01-01`. The 2024 grocery posting is excluded, so `Expenses:Food` shows only the 40 USD spent in 2023:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, sum(position) AS total
+    FROM year >= 2000 CLOSE ON 2024-01-01
+    WHERE account ~ 'Expenses'
+    GROUP BY account
+    ORDER BY account
+    """
+    namedq_run_query_ui = query_editor(_sql, label="What '.run expenses-2023' executes (CLOSE from the directive date)")
+    return (namedq_run_query_ui,)
+
+
+@app.cell
+def _(mo, namedq_ledger_ui, namedq_run_query_ui, query_output):
+    mo.vstack([
+        namedq_run_query_ui,
+        query_output(namedq_ledger_ui.value, namedq_run_query_ui.value)
+    ])
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    For contrast, the same `SELECT` run **without** the implied `CLOSE` — for example by typing it directly at the prompt instead of through `.run` — considers the whole ledger, so `Expenses:Food` adds up the 2024 grocery posting as well and reaches 95 USD:
+    """)
+    return
+
+
+@app.cell
+def _(query_editor):
+    _sql = """\
+    SELECT account, sum(position) AS total
+    WHERE year >= 2000 AND account ~ 'Expenses'
+    GROUP BY account
+    ORDER BY account
+    """
+    namedq_bare_query_ui = query_editor(_sql, label="The same query without the directive's CLOSE date")
+    return (namedq_bare_query_ui,)
+
+
+@app.cell
+def _(mo, namedq_bare_query_ui, namedq_ledger_ui, query_output):
+    mo.vstack([
+        namedq_bare_query_ui,
+        query_output(namedq_ledger_ui.value, namedq_bare_query_ui.value)
+    ])
     return
 
 

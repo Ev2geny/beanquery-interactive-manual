@@ -7,6 +7,9 @@
     - [1.2 As an online interactive manual in the **Marimo Molab cloud**](#12-as-an-online-interactive-manual-in-the-marimo-molab-cloud)
     - [1.2 As an interactive manual locally on your PC](#12-as-an-interactive-manual-locally-on-your-pc)
   - [2 How to read the manual](#2-how-to-read-the-manual)
+  - [Release notes](#release-notes)
+    - [v0.3.0 2026-06-21](#v030-2026-06-21)
+    - [v0.1.0 2026-04-15](#v010-2026-04-15)
 
 This is an interactive manual and tutorial for [beanquery](https://github.com/beancount/beanquery) — a customizable, extensible, lightweight SQL-like query tool for [Beancount](https://github.com/beancount/beancount/) ledger data.
 
@@ -55,3 +58,32 @@ To achieve this do the following:
 Use the popping Table of Content on the right side to navigate the document
 
 ![toc](images/TOC.png)
+
+## Release notes
+
+### v0.3.0 2026-06-21
+
+Changes since v0.1.0:
+
+* **Functions and expressions** — added documentation for many functions:
+  * `VALUE()` (section 12.2.4)
+  * `DATE_BIN()`, `DATE_TRUNC()` and `DATE_PART()` (section 12.2.6)
+  * `COALESCE()` (section 12.2.8)
+  * `META()`, `ENTRY_META()` and `ANY_META()` (section 12.2.9), cross-linked with the `meta` column
+  * `CONVERT()`, `ROOT()` and related improvements to section 9.3
+* **Query clauses** — filled in and expanded section 13:
+  * `DISTINCT` (13.1), `ORDER BY` (13.2) and `LIMIT` (13.3) with examples
+  * `HAVING` clause (13.4 and the grammar in section 8)
+  * `PIVOT BY` clause (13.5)
+* **Subqueries** — new section 14.
+* **Operators** — expanded section 9.1: added Set and collection operators (9.1.5) and richer regex operator documentation (9.1.2). Added IN, ANY, ALL
+* **FROM clause** — documented the three table-name forms (`#table`, quoted and bare).
+* **Named queries** — new Appendix C covering the `query` directive and `.run`.
+* **Display precision** — documented and fixed in Appendix B (section 19.2).
+* **beanquery version** — pinned to GitHub commit `62b6abb`; references to bugs fixed upstream were removed.
+* Various English and formatting improvements, plus an automatic Table of Contents.
+
+### v0.1.0 2026-04-15
+
+Initial version, roughly covering [Beancount Query Language](https://docs.google.com/document/d/1s0GOZMcrKKCLlP29MD7kHO4L88evrwWdIO0p4EwRBE0/edit?usp=sharing) document.
+

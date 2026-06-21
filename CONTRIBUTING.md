@@ -42,13 +42,14 @@ These are simple steps to do this
  
 # Release process
 
-## Update  HTML file for github pages
-1. Make sure you are on the `main` branch
-2. Murge latest changes from the `develop` branch
-3. Export marimo notebook to html file manually by 1st running the notebook and then using "Download as HTML" on the right top side.
-4. Rename the downloaded HTML file to index.html and save it to the directory `docs`
-5. commit changes
-6. push changes to github
+1. Whilst still on the `develop` branch update version both in `pyproject.toml` as well as in `in the manual.py`
+2. push to github
+3. Switch to the the `main` branch
+4. Merge latest changes from the `develop` branch
+5. Export marimo notebook to html file manually by 1st running the notebook and then using "Download as HTML" on the right top side.
+6. Rename the downloaded HTML file to index.html and save it to the directory `docs`
+7. commit changes
+8. push changes to github
 
 ## Update notebook on the Molab cloud
 1. To go https://molab.marimo.io/notebooks and shutdown the notebook in question, if it is running.
@@ -60,3 +61,10 @@ These are simple steps to do this
 3. Via the file menu delete the old notebook.py file
    
 4. Via the file menu rename the newly uploaded file to notebook.py
+
+## Prepare for the next updates
+
+1. Switch to the `develop` branch
+2. Change version to the next development version. E.g.: `0.1.0 => 0.1.1.dev0`
+3. Commit changes
+4. push changes to github
